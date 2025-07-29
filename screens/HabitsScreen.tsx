@@ -193,18 +193,41 @@ export default function HabitsScreen({
         {/* Good Habits List */}
         <View style={{ width: '80%', marginTop: 90 }}>
           {goodHabits.map((habit, idx) => (
-            <TouchableOpacity
-              key={idx}
-              onPress={() => {
-                setEditHabitIdx(idx);
-                setEditHabitText(habit);
-                setEditModalVisible(true);
-              }}
-            >
-              <View style={{ backgroundColor: '#e6fff6', borderRadius: 8, padding: 8, marginBottom: 8 }}>
-                <Text style={{ color: '#176d3b', fontWeight: 'bold' }}>{habit}</Text>
+            <View key={idx} style={styles.goodHabitBox}>
+              {/* Habit name */}
+              <Text style={styles.goodHabitText}>{habit}</Text>
+              {/* EXP gain label and progress bar */}
+              <View style={styles.expRow}>
+                <Text style={styles.expLabel}>EXP gain</Text>
+                <View style={styles.expBarContainer}>
+                  {/* Progress bar: 1/5 filled */}
+                  {[...Array(5)].map((_, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.expBarLevel,
+                        i < 1 ? styles.expBarLevelFilled : styles.expBarLevelEmpty // 1/5 filled
+                      ]}
+                    />
+                  ))}
+                </View>
               </View>
-            </TouchableOpacity>
+              {/* Gold gain label and progress bar */}
+              <View style={styles.goldRow}>
+                <Text style={styles.goldLabel}>Gold gain</Text>
+                <View style={styles.goldBarContainer}>
+                  {[...Array(5)].map((_, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.goldBarLevel,
+                        i < 1 ? styles.goldBarLevelFilled : styles.goldBarLevelEmpty // 1/5 filled
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
+            </View>
           ))}
         </View>
         <TouchableOpacity style={styles.addGoodHabit} onPress={handleAddButtonPress}>
@@ -371,5 +394,87 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  goodHabitBox: {
+    backgroundColor: '#e6fff6',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    width: '100%',
+    alignItems: 'flex-start',
+    elevation: 2,
+    paddingRight: 6, // Reduced right padding for smaller margin
+  },
+  goodHabitText: {
+    color: '#176d3b',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  expRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    width: '100%',           // Make row fill the box
+    justifyContent: 'space-between', // Space label and bar apart
+  },
+  expLabel: {
+    color: '#176d3b',
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  expBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 10,
+    // Remove marginLeft, let justifyContent handle spacing
+  },
+  expBarLevel: {
+    width: 12,            // reduced width
+    height: 7,            // reduced height
+    borderRadius: 2,
+    marginHorizontal: 1,  // reduced margin
+    borderWidth: 1,
+    borderColor: '#176d3b',
+  },
+  expBarLevelFilled: {
+    backgroundColor: '#4bbf7f',
+  },
+  expBarLevelEmpty: {
+    backgroundColor: '#fff',
+  },
+  goldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    width: '100%',           // Make row fill the box
+    justifyContent: 'space-between', // Space label and bar apart
+  },
+  goldLabel: {
+    color: '#bfa16b',
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  goldBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 10,
+    // Remove marginLeft, let justifyContent handle spacing
+  },
+  goldBarLevel: {
+    width: 12,
+    height: 7,
+    borderRadius: 2,
+    marginHorizontal: 1,
+    borderWidth: 1,
+    borderColor: '#bfa16b',
+  },
+  goldBarLevelFilled: {
+    backgroundColor: '#ffe082',
+  },
+  goldBarLevelEmpty: {
+    backgroundColor: '#fff',
   },
 });
