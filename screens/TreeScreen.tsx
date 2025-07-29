@@ -32,11 +32,23 @@ export default function TreeScreen({
     setCheckedBad(badHabits.map(() => false));
   }, [badHabits]);
 
-  const toggleGood = (idx: number) => {
+  // Handler for checking a good habit
+  const handleCheckGoodHabit = (idx: number) => {
     setCheckedGood(prev => prev.map((v, i) => i === idx ? !v : v));
+    if (!checkedGood[idx]) {
+      // TEST LOGIC: advance exp and coins by test values
+      setExp(prev => Math.min(prev + 15, 100));
+      if (setCoins && typeof coins === 'number') setCoins(coins + 10);
+    }
   };
-  const toggleBad = (idx: number) => {
+
+  const handleCheckBadHabit = (idx: number) => {
     setCheckedBad(prev => prev.map((v, i) => i === idx ? !v : v));
+    if (!checkedBad[idx]) {
+      // TEST LOGIC: advance decay and decrease exp by test values
+      setDecay(prev => Math.min(prev + 20, 100));
+      setExp(prev => Math.max(prev - 10, 0));
+    }
   };
 
   return (
@@ -103,7 +115,7 @@ export default function TreeScreen({
                     <Text style={styles.habitTextBad}>{habit.name}</Text>
                     <TouchableOpacity
                       style={styles.checkbox}
-                      onPress={() => toggleBad(idx)}
+                      onPress={() => handleCheckBadHabit(idx)}
                     >
                       <View style={[
                         styles.checkboxBox,
@@ -126,7 +138,7 @@ export default function TreeScreen({
                     <Text style={styles.habitTextGood}>{habit.name}</Text>
                     <TouchableOpacity
                       style={styles.checkbox}
-                      onPress={() => toggleGood(idx)}
+                      onPress={() => handleCheckGoodHabit(idx)}
                     >
                       <View style={[
                         styles.checkboxBox,
