@@ -6,16 +6,42 @@ import HabitsScreen from './screens/HabitsScreen';
 import TreeScreen from './screens/TreeScreen';
 import AccountScreen from './screens/AccountScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import { useState } from 'react';
 
 const Tab = createBottomTabNavigator();
 
 export default function App() {
+  const [goodHabits, setGoodHabits] = useState<string[]>([]);
+  const [badHabits, setBadHabits] = useState<string[]>([]);
+
   return (
     <NavigationContainer>
       <Tab.Navigator initialRouteName="Tree">
         <Tab.Screen name="Shop" component={ShopScreen} />
-        <Tab.Screen name="Habits" component={HabitsScreen} options={{ headerShown: false }} />
-        <Tab.Screen name="Tree" component={TreeScreen} options={{ headerShown: false }} />
+        <Tab.Screen
+          name="Habits"
+          options={{ headerShown: false }}
+        >
+          {() => (
+            <HabitsScreen
+              goodHabits={goodHabits}
+              setGoodHabits={setGoodHabits}
+              badHabits={badHabits}
+              setBadHabits={setBadHabits}
+            />
+          )}
+        </Tab.Screen>
+        <Tab.Screen
+          name="Tree"
+          options={{ headerShown: false }}
+        >
+          {() => (
+            <TreeScreen
+              goodHabits={goodHabits}
+              badHabits={badHabits}
+            />
+          )}
+        </Tab.Screen>
         <Tab.Screen name="Account" component={AccountScreen} />
         <Tab.Screen name="Settings" component={SettingsScreen} />
       </Tab.Navigator>

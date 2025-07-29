@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, Button, StyleSheet } from 'react-native';
 
-export default function HabitsScreen() {
-  const [goodHabits, setGoodHabits] = useState<string[]>([]);
-  const [badHabits, setBadHabits] = useState<string[]>([]);
+export default function HabitsScreen({
+  goodHabits,
+  setGoodHabits,
+  badHabits,
+  setBadHabits,
+}: {
+  goodHabits: string[];
+  setGoodHabits: React.Dispatch<React.SetStateAction<string[]>>;
+  badHabits: string[];
+  setBadHabits: React.Dispatch<React.SetStateAction<string[]>>;
+}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [newHabit, setNewHabit] = useState('');
   const [editModalVisible, setEditModalVisible] = useState(false);
