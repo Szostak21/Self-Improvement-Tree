@@ -6,13 +6,38 @@ import HabitsScreen from './screens/HabitsScreen';
 import TreeScreen from './screens/TreeScreen';
 import AccountScreen from './screens/AccountScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Asset } from 'expo-asset';
+import { View, ActivityIndicator } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 
 export default function App() {
   const [goodHabits, setGoodHabits] = useState<string[]>([]);
   const [badHabits, setBadHabits] = useState<string[]>([]);
+  const [coins, setCoins] = useState(100);
+  const [gems, setGems] = useState(10);
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+
+  useEffect(() => {
+    async function loadAssets() {
+      await Asset.loadAsync([
+        require('./assets/coin.png'),
+        require('./assets/gem.png'),
+        require('./assets/tree_background.png'),
+      ]);
+      setAssetsLoaded(true);
+    }
+    loadAssets();
+  }, []);
+
+  if (!assetsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#176d3b" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
@@ -28,6 +53,8 @@ export default function App() {
               setGoodHabits={setGoodHabits}
               badHabits={badHabits}
               setBadHabits={setBadHabits}
+              coins={coins}
+              setCoins={setCoins} // <-- add this
             />
           )}
         </Tab.Screen>
@@ -39,6 +66,10 @@ export default function App() {
             <TreeScreen
               goodHabits={goodHabits}
               badHabits={badHabits}
+              coins={coins}      // <-- pass coins
+              setCoins={setCoins}
+              gems={gems}
+              setGems={setGems}
             />
           )}
         </Tab.Screen>

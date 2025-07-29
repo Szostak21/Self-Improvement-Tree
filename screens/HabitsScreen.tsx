@@ -1,16 +1,40 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, TextInput, Button, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, TextInput, Button, StyleSheet, Image } from 'react-native';
+
+const UpgradeButton = ({ label = "Upgrade", cost = 10 }) => (
+  <View style={{
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#eee',
+    borderRadius: 8,
+    minWidth: 64,
+  }}>
+    <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#176d3b', marginBottom: 2 }}>{label}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <Image
+        source={require('../assets/coin.png')}
+        style={{ width: 16, height: 16, marginRight: 4 }}
+        resizeMode="contain"
+      />
+      <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#000' }}>{cost}</Text>
+    </View>
+  </View>
+);
 
 export default function HabitsScreen({
   goodHabits,
   setGoodHabits,
   badHabits,
   setBadHabits,
+  coins, // <-- add this
 }: {
   goodHabits: string[];
   setGoodHabits: React.Dispatch<React.SetStateAction<string[]>>;
   badHabits: string[];
   setBadHabits: React.Dispatch<React.SetStateAction<string[]>>;
+  coins: number; // <-- add this
 }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [newHabit, setNewHabit] = useState('');
@@ -112,8 +136,39 @@ export default function HabitsScreen({
                 setEditBadModalVisible(true);
               }}
             >
-              <View style={{ backgroundColor: '#fff3e6', borderRadius: 8, padding: 8, marginBottom: 8 }}>
-                <Text style={{ color: '#4b2e19', fontWeight: 'bold' }}>{habit}</Text>
+              <View style={styles.badHabitBox}>
+                {/* Habit name */}
+                <Text style={styles.badHabitText}>{habit}</Text>
+                {/* Decay label and progress bar */}
+                <View style={styles.decayRow}>
+                  <Text style={styles.decayLabel}>Decay</Text>
+                  <View style={styles.decayBarContainer}>
+                    {[...Array(5)].map((_, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.decayBarLevel,
+                          i < 1 ? styles.decayBarLevelFilled : styles.decayBarLevelEmpty // 1/5 filled
+                        ]}
+                      />
+                    ))}
+                  </View>
+                </View>
+                {/* EXP loss label and progress bar */}
+                <View style={styles.expLossRow}>
+                  <Text style={styles.expLossLabel}>EXP loss</Text>
+                  <View style={styles.expLossBarContainer}>
+                    {[...Array(5)].map((_, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.expLossBarLevel,
+                          i < 1 ? styles.expLossBarLevelFilled : styles.expLossBarLevelEmpty // 1/5 filled
+                        ]}
+                      />
+                    ))}
+                  </View>
+                </View>
               </View>
             </TouchableOpacity>
           ))}
@@ -155,18 +210,83 @@ export default function HabitsScreen({
         >
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
             <View style={{ backgroundColor: '#fff', padding: 24, borderRadius: 16, width: '80%' }}>
+              <View style={{ position: 'absolute', top: 24, right: 24, flexDirection: 'row', alignItems: 'center' }}>
+                <Image
+                  source={require('../assets/coin.png')}
+                  style={{ width: 24, height: 24, marginRight: 6 }}
+                  resizeMode="contain"
+                />
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#000' }}>
+                  {coins}
+                </Text>
+              </View>
+              {/* Habit name input */}
               <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12, color: '#4b2e19' }}>Edit Bad Habit</Text>
               <TextInput
                 value={editBadHabitText}
                 onChangeText={setEditBadHabitText}
                 placeholder="Habit name"
                 style={{ borderWidth: 1, borderColor: '#4b2e19', borderRadius: 8, padding: 8, marginBottom: 16 }}
-                autoFocus
+                autoFocus={false}
               />
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              {/* Decay row */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, justifyContent: 'space-between' }}>
+                <Text style={styles.decayLabel}>Decay</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={styles.decayBarContainer}>
+                    {[...Array(5)].map((_, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.decayBarLevel,
+                          i < 1 ? styles.decayBarLevelFilled : styles.decayBarLevelEmpty // 1/5 filled
+                        ]}
+                      />
+                    ))}
+                  </View>
+                  <View style={{ width: 16 }} />
+                  <TouchableOpacity onPress={() => { /* upgrade logic here */ }}>
+                    <UpgradeButton cost={10} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              {/* EXP loss row */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, justifyContent: 'space-between' }}>
+                <Text style={styles.expLossLabel}>EXP loss</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={styles.expLossBarContainer}>
+                    {[...Array(5)].map((_, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.expLossBarLevel,
+                          i < 1 ? styles.expLossBarLevelFilled : styles.expLossBarLevelEmpty // 1/5 filled
+                        ]}
+                      />
+                    ))}
+                  </View>
+                  <View style={{ width: 16 }} /> 
+                  <TouchableOpacity onPress={() => { /* upgrade logic here */ }}>
+                    <UpgradeButton cost={10} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              {/* Delete and Exit buttons */}
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
                 <Button title="Delete" onPress={handleDeleteBadHabit} color="#d32f2f" />
                 <View style={{ width: 12 }} />
-                <Button title="Save" onPress={handleEditBadHabit} color="#4b2e19" />
+                <Button
+                  title="Exit"
+                  onPress={() => {
+                    if (editBadHabitIdx !== null && editBadHabitText.trim()) {
+                      const updated = [...badHabits];
+                      updated[editBadHabitIdx] = editBadHabitText.trim();
+                      setBadHabits(updated);
+                    }
+                    setEditBadModalVisible(false);
+                  }}
+                  color="#4b2e19"
+                />
               </View>
             </View>
           </View>
@@ -193,41 +313,47 @@ export default function HabitsScreen({
         {/* Good Habits List */}
         <View style={{ width: '80%', marginTop: 90 }}>
           {goodHabits.map((habit, idx) => (
-            <View key={idx} style={styles.goodHabitBox}>
-              {/* Habit name */}
-              <Text style={styles.goodHabitText}>{habit}</Text>
-              {/* EXP gain label and progress bar */}
-              <View style={styles.expRow}>
-                <Text style={styles.expLabel}>EXP gain</Text>
-                <View style={styles.expBarContainer}>
-                  {/* Progress bar: 1/5 filled */}
-                  {[...Array(5)].map((_, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.expBarLevel,
-                        i < 1 ? styles.expBarLevelFilled : styles.expBarLevelEmpty // 1/5 filled
-                      ]}
-                    />
-                  ))}
+            <TouchableOpacity
+              key={idx}
+              onPress={() => {
+                setEditHabitIdx(idx);
+                setEditHabitText(habit);
+                setEditModalVisible(true);
+              }}
+            >
+              <View style={styles.goodHabitBox}>
+                <Text style={styles.goodHabitText}>{habit}</Text>
+                <View style={styles.expRow}>
+                  <Text style={styles.expLabel}>EXP gain</Text>
+                  <View style={styles.expBarContainer}>
+                    {/* Progress bar: 1/5 filled */}
+                    {[...Array(5)].map((_, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.expBarLevel,
+                          i < 1 ? styles.expBarLevelFilled : styles.expBarLevelEmpty
+                        ]}
+                      />
+                    ))}
+                  </View>
+                </View>
+                <View style={styles.goldRow}>
+                  <Text style={styles.goldLabel}>Gold gain</Text>
+                  <View style={styles.goldBarContainer}>
+                    {[...Array(5)].map((_, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.goldBarLevel,
+                          i < 1 ? styles.goldBarLevelFilled : styles.goldBarLevelEmpty
+                        ]}
+                      />
+                    ))}
+                  </View>
                 </View>
               </View>
-              {/* Gold gain label and progress bar */}
-              <View style={styles.goldRow}>
-                <Text style={styles.goldLabel}>Gold gain</Text>
-                <View style={styles.goldBarContainer}>
-                  {[...Array(5)].map((_, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.goldBarLevel,
-                        i < 1 ? styles.goldBarLevelFilled : styles.goldBarLevelEmpty // 1/5 filled
-                      ]}
-                    />
-                  ))}
-                </View>
-              </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
         <TouchableOpacity style={styles.addGoodHabit} onPress={handleAddButtonPress}>
@@ -267,18 +393,83 @@ export default function HabitsScreen({
         >
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
             <View style={{ backgroundColor: '#fff', padding: 24, borderRadius: 16, width: '80%' }}>
+              <View style={{ position: 'absolute', top: 24, right: 24, flexDirection: 'row', alignItems: 'center' }}>
+                <Image
+                  source={require('../assets/coin.png')}
+                  style={{ width: 24, height: 24, marginRight: 6 }}
+                  resizeMode="contain"
+                />
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#000' }}>
+                  {coins}
+                </Text>
+              </View>
+              {/* Habit name input */}
               <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12, color: '#176d3b' }}>Edit Good Habit</Text>
               <TextInput
                 value={editHabitText}
                 onChangeText={setEditHabitText}
                 placeholder="Habit name"
                 style={{ borderWidth: 1, borderColor: '#176d3b', borderRadius: 8, padding: 8, marginBottom: 16 }}
-                autoFocus
+                autoFocus={false} // Change from autoFocus to false
               />
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              {/* EXP gain row */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, justifyContent: 'space-between' }}>
+                <Text style={styles.expLabel}>EXP gain</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={styles.expBarContainer}>
+                    {[...Array(5)].map((_, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.expBarLevel,
+                          i < 1 ? styles.expBarLevelFilled : styles.expBarLevelEmpty // 1/5 filled
+                        ]}
+                      />
+                    ))}
+                  </View>
+                  <View style={{ width: 16 }} /> 
+                  <TouchableOpacity onPress={() => { /* upgrade logic here */ }}>
+                    <UpgradeButton cost={10} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              {/* Gold gain row */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, justifyContent: 'space-between' }}>
+                <Text style={styles.goldLabel}>Gold gain</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={styles.goldBarContainer}>
+                    {[...Array(5)].map((_, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.goldBarLevel,
+                          i < 1 ? styles.goldBarLevelFilled : styles.goldBarLevelEmpty // 1/5 filled
+                        ]}
+                      />
+                    ))}
+                  </View>
+                  <View style={{ width: 16 }} /> 
+                  <TouchableOpacity onPress={() => { /* upgrade logic here */ }}>
+                    <UpgradeButton cost={10} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              {/* Delete and Exit buttons */}
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
                 <Button title="Delete" onPress={handleDeleteHabit} color="#d32f2f" />
                 <View style={{ width: 12 }} />
-                <Button title="Save" onPress={handleEditHabit} color="#176d3b" />
+                <Button
+                  title="Exit"
+                  onPress={() => {
+                    if (editHabitIdx !== null && editHabitText.trim()) {
+                      const updated = [...goodHabits];
+                      updated[editHabitIdx] = editHabitText.trim();
+                      setGoodHabits(updated);
+                    }
+                    setEditModalVisible(false);
+                  }}
+                  color="#176d3b"
+                />
               </View>
             </View>
           </View>
@@ -476,5 +667,79 @@ const styles = StyleSheet.create({
   },
   goldBarLevelEmpty: {
     backgroundColor: '#fff',
+  },
+  badHabitBox: {
+    backgroundColor: '#fff3e6',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    width: '100%',
+    alignItems: 'flex-start',
+    elevation: 2,
+    paddingRight: 6,
+  },
+  badHabitText: {
+    color: '#4b2e19',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  decayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    width: '100%',
+    justifyContent: 'space-between',
+  },
+  decayLabel: {
+    color: '#d32f2f',
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  decayBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 10,
+  },
+  decayBarLevel: {
+    width: 12,
+    height: 7,
+    borderRadius: 2,
+    marginHorizontal: 1,
+    borderWidth: 1,
+    borderColor: '#d32f2f',
+  },
+  decayBarLevelFilled: {
+    backgroundColor: '#ffd6d6',
+  },
+  expLossRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    width: '100%',
+    justifyContent: 'space-between',
+  },
+  expLossLabel: {
+    color: '#b71c1c',
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  expLossBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 10,
+  },
+  expLossBarLevel: {
+    width: 12,
+    height: 7,
+    borderRadius: 2,
+    marginHorizontal: 1,
+    borderWidth: 1,
+    borderColor: '#b71c1c',
+  },
+  expLossBarLevelFilled: {
+    backgroundColor: '#ffcdd2',
   },
 });
