@@ -13,8 +13,12 @@ import { View, ActivityIndicator } from 'react-native';
 const Tab = createBottomTabNavigator();
 
 export default function App() {
-  const [goodHabits, setGoodHabits] = useState<string[]>([]);
-  const [badHabits, setBadHabits] = useState<string[]>([]);
+  const [goodHabits, setGoodHabits] = useState<
+    { name: string; expLevel: number; goldLevel: number }[]
+  >([]);
+  const [badHabits, setBadHabits] = useState<
+    { name: string; decayLevel: number; expLossLevel: number }[]
+  >([]);
   const [coins, setCoins] = useState(100);
   const [gems, setGems] = useState(10);
   const [assetsLoaded, setAssetsLoaded] = useState(false);
@@ -54,7 +58,7 @@ export default function App() {
               badHabits={badHabits}
               setBadHabits={setBadHabits}
               coins={coins}
-              setCoins={setCoins} // <-- add this
+              setCoins={setCoins}
             />
           )}
         </Tab.Screen>
@@ -66,7 +70,7 @@ export default function App() {
             <TreeScreen
               goodHabits={goodHabits}
               badHabits={badHabits}
-              coins={coins}      // <-- pass coins
+              coins={coins}
               setCoins={setCoins}
               gems={gems}
               setGems={setGems}

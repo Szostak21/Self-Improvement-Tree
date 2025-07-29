@@ -28,19 +28,21 @@ export default function HabitsScreen({
   setGoodHabits,
   badHabits,
   setBadHabits,
-  coins, // <-- add this
+  coins,
 }: {
-  goodHabits: string[];
-  setGoodHabits: React.Dispatch<React.SetStateAction<string[]>>;
-  badHabits: string[];
-  setBadHabits: React.Dispatch<React.SetStateAction<string[]>>;
-  coins: number; // <-- add this
+  goodHabits: { name: string; expLevel: number; goldLevel: number }[];
+  setGoodHabits: React.Dispatch<React.SetStateAction<{ name: string; expLevel: number; goldLevel: number }[]>>;
+  badHabits: { name: string; decayLevel: number; expLossLevel: number }[];
+  setBadHabits: React.Dispatch<React.SetStateAction<{ name: string; decayLevel: number; expLossLevel: number }[]>>;
+  coins: number;
 }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [newHabit, setNewHabit] = useState('');
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editHabitIdx, setEditHabitIdx] = useState<number | null>(null);
   const [editHabitText, setEditHabitText] = useState('');
+  const [editExpLevel, setEditExpLevel] = useState(1);
+  const [editGoldLevel, setEditGoldLevel] = useState(1);
   const [maxGoodHabits, setMaxGoodHabits] = useState(2);
   const [limitModalVisible, setLimitModalVisible] = useState(false);
 
@@ -49,13 +51,18 @@ export default function HabitsScreen({
   const [editBadModalVisible, setEditBadModalVisible] = useState(false);
   const [editBadHabitIdx, setEditBadHabitIdx] = useState<number | null>(null);
   const [editBadHabitText, setEditBadHabitText] = useState('');
+  const [editDecayLevel, setEditDecayLevel] = useState(1);
+  const [editExpLossLevel, setEditExpLossLevel] = useState(1);
   const [maxBadHabits, setMaxBadHabits] = useState(2);
   const [badLimitModalVisible, setBadLimitModalVisible] = useState(false);
 
   // Good habits logic
   const handleAddHabit = () => {
     if (newHabit.trim()) {
-      setGoodHabits([...goodHabits, newHabit.trim()]);
+      setGoodHabits([
+        ...goodHabits,
+        { name: newHabit.trim(), expLevel: 1, goldLevel: 1 },
+      ]);
       setNewHabit('');
       setModalVisible(false);
     }
@@ -63,7 +70,11 @@ export default function HabitsScreen({
   const handleEditHabit = () => {
     if (editHabitIdx !== null && editHabitText.trim()) {
       const updated = [...goodHabits];
-      updated[editHabitIdx] = editHabitText.trim();
+      updated[editHabitIdx] = {
+        name: editHabitText.trim(),
+        expLevel: editExpLevel,
+        goldLevel: editGoldLevel,
+      };
       setGoodHabits(updated);
       setEditModalVisible(false);
     }
@@ -86,7 +97,10 @@ export default function HabitsScreen({
   // Bad habits logic
   const handleAddBadHabit = () => {
     if (newBadHabit.trim()) {
-      setBadHabits([...badHabits, newBadHabit.trim()]);
+      setBadHabits([
+        ...badHabits,
+        { name: newBadHabit.trim(), decayLevel: 1, expLossLevel: 1 },
+      ]);
       setNewBadHabit('');
       setBadModalVisible(false);
     }
@@ -94,7 +108,11 @@ export default function HabitsScreen({
   const handleEditBadHabit = () => {
     if (editBadHabitIdx !== null && editBadHabitText.trim()) {
       const updated = [...badHabits];
-      updated[editBadHabitIdx] = editBadHabitText.trim();
+      updated[editBadHabitIdx] = {
+        name: editBadHabitText.trim(),
+        decayLevel: editDecayLevel,
+        expLossLevel: editExpLossLevel,
+      };
       setBadHabits(updated);
       setEditBadModalVisible(false);
     }
@@ -127,51 +145,53 @@ export default function HabitsScreen({
       <View style={styles.habitsHalfBad}>
         {/* Bad Habits List */}
         <View style={{ width: '80%', marginTop: 90 }}>
-          {badHabits.map((habit, idx) => (
-            <TouchableOpacity
-              key={idx}
-              onPress={() => {
-                setEditBadHabitIdx(idx);
-                setEditBadHabitText(habit);
-                setEditBadModalVisible(true);
-              }}
-            >
-              <View style={styles.badHabitBox}>
-                {/* Habit name */}
-                <Text style={styles.badHabitText}>{habit}</Text>
-                {/* Decay label and progress bar */}
-                <View style={styles.decayRow}>
-                  <Text style={styles.decayLabel}>Decay</Text>
-                  <View style={styles.decayBarContainer}>
-                    {[...Array(5)].map((_, i) => (
-                      <View
-                        key={i}
-                        style={[
-                          styles.decayBarLevel,
-                          i < 1 ? styles.decayBarLevelFilled : styles.decayBarLevelEmpty // 1/5 filled
-                        ]}
-                      />
-                    ))}
-                  </View>
-                </View>
-                {/* EXP loss label and progress bar */}
-                <View style={styles.expLossRow}>
-                  <Text style={styles.expLossLabel}>EXP loss</Text>
-                  <View style={styles.expLossBarContainer}>
-                    {[...Array(5)].map((_, i) => (
-                      <View
-                        key={i}
-                        style={[
-                          styles.expLossBarLevel,
-                          i < 1 ? styles.expLossBarLevelFilled : styles.expLossBarLevelEmpty // 1/5 filled
-                        ]}
-                      />
-                    ))}
-                  </View>
-                </View>
+      {badHabits.map((habit, idx) => (
+        <TouchableOpacity
+          key={idx}
+          onPress={() => {
+            setEditBadHabitIdx(idx);
+            setEditBadHabitText(habit.name);
+            setEditDecayLevel(habit.decayLevel);
+            setEditExpLossLevel(habit.expLossLevel);
+            setEditBadModalVisible(true);
+          }}
+        >
+          <View style={styles.badHabitBox}>
+            {/* Habit name */}
+            <Text style={styles.badHabitText}>{habit.name}</Text>
+            {/* Decay label and progress bar */}
+            <View style={styles.decayRow}>
+              <Text style={styles.decayLabel}>Decay</Text>
+              <View style={styles.decayBarContainer}>
+                {[...Array(5)].map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.decayBarLevel,
+                      i < habit.decayLevel ? styles.decayBarLevelFilled : styles.decayBarLevel
+                    ]}
+                  />
+                ))}
               </View>
-            </TouchableOpacity>
-          ))}
+            </View>
+            {/* EXP loss label and progress bar */}
+            <View style={styles.expLossRow}>
+              <Text style={styles.expLossLabel}>EXP loss</Text>
+              <View style={styles.expLossBarContainer}>
+                {[...Array(5)].map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.expLossBarLevel,
+                      i < habit.expLossLevel ? styles.expLossBarLevelFilled : styles.expLossBarLevel
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      ))}
         </View>
         <TouchableOpacity style={styles.addBadHabit} onPress={handleAddBadButtonPress}>
           <Text style={styles.plus}>+</Text>
@@ -239,7 +259,7 @@ export default function HabitsScreen({
                         key={i}
                         style={[
                           styles.decayBarLevel,
-                          i < 1 ? styles.decayBarLevelFilled : styles.decayBarLevelEmpty // 1/5 filled
+                          i < 1 ? styles.decayBarLevelFilled : styles.decayBarLevel // 1/5 filled
                         ]}
                       />
                     ))}
@@ -260,7 +280,7 @@ export default function HabitsScreen({
                         key={i}
                         style={[
                           styles.expLossBarLevel,
-                          i < 1 ? styles.expLossBarLevelFilled : styles.expLossBarLevelEmpty // 1/5 filled
+                          i < 1 ? styles.expLossBarLevelFilled : styles.expLossBarLevel // 1/5 filled
                         ]}
                       />
                     ))}
@@ -280,7 +300,11 @@ export default function HabitsScreen({
                   onPress={() => {
                     if (editBadHabitIdx !== null && editBadHabitText.trim()) {
                       const updated = [...badHabits];
-                      updated[editBadHabitIdx] = editBadHabitText.trim();
+                      updated[editBadHabitIdx] = {
+                        name: editBadHabitText.trim(),
+                        decayLevel: editDecayLevel,
+                        expLossLevel: editExpLossLevel,
+                      };
                       setBadHabits(updated);
                     }
                     setEditBadModalVisible(false);
@@ -312,49 +336,50 @@ export default function HabitsScreen({
       <View style={styles.habitsHalfGood}>
         {/* Good Habits List */}
         <View style={{ width: '80%', marginTop: 90 }}>
-          {goodHabits.map((habit, idx) => (
-            <TouchableOpacity
-              key={idx}
-              onPress={() => {
-                setEditHabitIdx(idx);
-                setEditHabitText(habit);
-                setEditModalVisible(true);
-              }}
-            >
-              <View style={styles.goodHabitBox}>
-                <Text style={styles.goodHabitText}>{habit}</Text>
-                <View style={styles.expRow}>
-                  <Text style={styles.expLabel}>EXP gain</Text>
-                  <View style={styles.expBarContainer}>
-                    {/* Progress bar: 1/5 filled */}
-                    {[...Array(5)].map((_, i) => (
-                      <View
-                        key={i}
-                        style={[
-                          styles.expBarLevel,
-                          i < 1 ? styles.expBarLevelFilled : styles.expBarLevelEmpty
-                        ]}
-                      />
-                    ))}
-                  </View>
-                </View>
-                <View style={styles.goldRow}>
-                  <Text style={styles.goldLabel}>Gold gain</Text>
-                  <View style={styles.goldBarContainer}>
-                    {[...Array(5)].map((_, i) => (
-                      <View
-                        key={i}
-                        style={[
-                          styles.goldBarLevel,
-                          i < 1 ? styles.goldBarLevelFilled : styles.goldBarLevelEmpty
-                        ]}
-                      />
-                    ))}
-                  </View>
-                </View>
+      {goodHabits.map((habit, idx) => (
+        <TouchableOpacity
+          key={idx}
+          onPress={() => {
+            setEditHabitIdx(idx);
+            setEditHabitText(habit.name);
+            setEditExpLevel(habit.expLevel);
+            setEditGoldLevel(habit.goldLevel);
+            setEditModalVisible(true);
+          }}
+        >
+          <View style={styles.goodHabitBox}>
+            <Text style={styles.goodHabitText}>{habit.name}</Text>
+            <View style={styles.expRow}>
+              <Text style={styles.expLabel}>EXP gain</Text>
+              <View style={styles.expBarContainer}>
+                {[...Array(5)].map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.expBarLevel,
+                      i < habit.expLevel ? styles.expBarLevelFilled : styles.expBarLevelEmpty
+                    ]}
+                  />
+                ))}
               </View>
-            </TouchableOpacity>
-          ))}
+            </View>
+            <View style={styles.goldRow}>
+              <Text style={styles.goldLabel}>Gold gain</Text>
+              <View style={styles.goldBarContainer}>
+                {[...Array(5)].map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.goldBarLevel,
+                      i < habit.goldLevel ? styles.goldBarLevelFilled : styles.goldBarLevelEmpty
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      ))}
         </View>
         <TouchableOpacity style={styles.addGoodHabit} onPress={handleAddButtonPress}>
           <Text style={styles.plus}>+</Text>
@@ -463,7 +488,11 @@ export default function HabitsScreen({
                   onPress={() => {
                     if (editHabitIdx !== null && editHabitText.trim()) {
                       const updated = [...goodHabits];
-                      updated[editHabitIdx] = editHabitText.trim();
+                      updated[editHabitIdx] = {
+                        name: editHabitText.trim(),
+                        expLevel: editExpLevel,
+                        goldLevel: editGoldLevel,
+                      };
                       setGoodHabits(updated);
                     }
                     setEditModalVisible(false);

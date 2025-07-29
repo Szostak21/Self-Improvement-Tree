@@ -4,14 +4,21 @@ import { View, Text, Image, ImageBackground, StyleSheet, ScrollView, TouchableOp
 export default function TreeScreen({
   goodHabits = [],
   badHabits = [],
+  coins = 100,
+  setCoins,
+  gems = 10,
+  setGems,
 }: {
-  goodHabits: string[];
-  badHabits: string[];
+  goodHabits: { name: string; expLevel: number; goldLevel: number }[];
+  badHabits: { name: string; decayLevel: number; expLossLevel: number }[];
+  coins?: number;
+  setCoins?: (c: number) => void;
+  gems?: number;
+  setGems?: (g: number) => void;
 }) {
   const [exp, setExp] = useState(1);
   const [decay, setDecay] = useState(1);
-  const [coins, setCoins] = useState(100);
-  const [gems, setGems] = useState(10);
+  // coins, setCoins, gems, setGems are now received as props
 
   // Checkbox state for good and bad habits
   const [checkedGood, setCheckedGood] = useState<boolean[]>(goodHabits.map(() => false));
@@ -93,7 +100,7 @@ export default function TreeScreen({
                 )}
                 {badHabits.map((habit, idx) => (
                   <View key={idx} style={styles.habitBoxBad}>
-                    <Text style={styles.habitTextBad}>{habit}</Text>
+                    <Text style={styles.habitTextBad}>{habit.name}</Text>
                     <TouchableOpacity
                       style={styles.checkbox}
                       onPress={() => toggleBad(idx)}
@@ -116,7 +123,7 @@ export default function TreeScreen({
                 )}
                 {goodHabits.map((habit, idx) => (
                   <View key={idx} style={styles.habitBoxGood}>
-                    <Text style={styles.habitTextGood}>{habit}</Text>
+                    <Text style={styles.habitTextGood}>{habit.name}</Text>
                     <TouchableOpacity
                       style={styles.checkbox}
                       onPress={() => toggleGood(idx)}
