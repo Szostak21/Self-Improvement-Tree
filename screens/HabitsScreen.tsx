@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, Button, StyleSheet, Image } from 'react-native';
 
-const UpgradeButton = ({ label = "Upgrade", cost = 10 }) => (
+const UpgradeButton = ({ label = "Upgrade", cost = 10, maxed = false }) => (
   <View style={{
     alignItems: 'center',
     justifyContent: 'center',
@@ -11,15 +11,17 @@ const UpgradeButton = ({ label = "Upgrade", cost = 10 }) => (
     borderRadius: 8,
     minWidth: 64,
   }}>
-    <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#176d3b', marginBottom: 2 }}>{label}</Text>
-    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <Image
-        source={require('../assets/coin.png')}
-        style={{ width: 16, height: 16, marginRight: 4 }}
-        resizeMode="contain"
-      />
-      <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#000' }}>{cost}</Text>
-    </View>
+    <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#176d3b', marginBottom: 2 }}>{maxed ? 'Max Level' : label}</Text>
+    {!maxed && (
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Image
+          source={require('../assets/coin.png')}
+          style={{ width: 16, height: 16, marginRight: 4 }}
+          resizeMode="contain"
+        />
+        <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#000' }}>{cost}</Text>
+      </View>
+    )}
   </View>
 );
 
@@ -29,12 +31,14 @@ export default function HabitsScreen({
   badHabits,
   setBadHabits,
   coins,
+  setCoins,
 }: {
   goodHabits: { name: string; expLevel: number; goldLevel: number }[];
   setGoodHabits: React.Dispatch<React.SetStateAction<{ name: string; expLevel: number; goldLevel: number }[]>>;
   badHabits: { name: string; decayLevel: number; expLossLevel: number }[];
   setBadHabits: React.Dispatch<React.SetStateAction<{ name: string; decayLevel: number; expLossLevel: number }[]>>;
   coins: number;
+  setCoins: React.Dispatch<React.SetStateAction<number>>;
 }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [newHabit, setNewHabit] = useState('');
@@ -43,6 +47,79 @@ export default function HabitsScreen({
   const [editHabitText, setEditHabitText] = useState('');
   const [editExpLevel, setEditExpLevel] = useState(1);
   const [editGoldLevel, setEditGoldLevel] = useState(1);
+
+  // Upgrade handlers for good and bad habits
+  const upgradeCosts = [10, 20, 50, 100, 100];
+  const getUpgradeCost = (level: number) => upgradeCosts[level - 1] || 100;
+  const MAX_LEVEL = 5;
+
+  // Decay gain scaling by level
+  const decayGainByLevel = [10, 8, 6, 4, 2];
+  const getDecayGain = (level: number) => decayGainByLevel[(level || 1) - 1] || 2;
+
+  // Upgrade handlers for bad habits
+  const handleUpgradeDecay = () => {
+    if (editBadHabitIdx === null) return;
+    const cost = getUpgradeCost(editDecayLevel);
+    if (coins < cost || editDecayLevel >= MAX_LEVEL) return;
+    setBadHabits(prev => {
+      const updated = [...prev];
+      updated[editBadHabitIdx] = {
+        ...updated[editBadHabitIdx],
+        decayLevel: updated[editBadHabitIdx].decayLevel + 1,
+      };
+      return updated;
+    });
+    setEditDecayLevel(lvl => lvl + 1);
+    setCoins(coins - cost);
+  };
+
+  const handleUpgradeExpLoss = () => {
+    if (editBadHabitIdx === null) return;
+    const cost = getUpgradeCost(editExpLossLevel);
+    if (coins < cost || editExpLossLevel >= MAX_LEVEL) return;
+    setBadHabits(prev => {
+      const updated = [...prev];
+      updated[editBadHabitIdx] = {
+        ...updated[editBadHabitIdx],
+        expLossLevel: updated[editBadHabitIdx].expLossLevel + 1,
+      };
+      return updated;
+    });
+    setEditExpLossLevel(lvl => lvl + 1);
+    setCoins(coins - cost);
+  };
+  const handleUpgradeExp = () => {
+    if (editHabitIdx === null) return;
+    const cost = getUpgradeCost(editExpLevel);
+    if (coins < cost || editExpLevel >= MAX_LEVEL) return;
+    setGoodHabits(prev => {
+      const updated = [...prev];
+      updated[editHabitIdx] = {
+        ...updated[editHabitIdx],
+        expLevel: updated[editHabitIdx].expLevel + 1,
+      };
+      return updated;
+    });
+    setEditExpLevel(lvl => lvl + 1);
+    setCoins(coins - cost);
+  };
+
+  const handleUpgradeGold = () => {
+    if (editHabitIdx === null) return;
+    const cost = getUpgradeCost(editGoldLevel);
+    if (coins < cost || editGoldLevel >= MAX_LEVEL) return;
+    setGoodHabits(prev => {
+      const updated = [...prev];
+      updated[editHabitIdx] = {
+        ...updated[editHabitIdx],
+        goldLevel: updated[editHabitIdx].goldLevel + 1,
+      };
+      return updated;
+    });
+    setEditGoldLevel(lvl => lvl + 1);
+    setCoins(coins - cost);
+  };
   const [maxGoodHabits, setMaxGoodHabits] = useState(2);
   const [limitModalVisible, setLimitModalVisible] = useState(false);
 
@@ -145,53 +222,53 @@ export default function HabitsScreen({
       <View style={styles.habitsHalfBad}>
         {/* Bad Habits List */}
         <View style={{ width: '80%', marginTop: 90 }}>
-      {badHabits.map((habit, idx) => (
-        <TouchableOpacity
-          key={idx}
-          onPress={() => {
-            setEditBadHabitIdx(idx);
-            setEditBadHabitText(habit.name);
-            setEditDecayLevel(habit.decayLevel);
-            setEditExpLossLevel(habit.expLossLevel);
-            setEditBadModalVisible(true);
-          }}
-        >
-          <View style={styles.badHabitBox}>
-            {/* Habit name */}
-            <Text style={styles.badHabitText}>{habit.name}</Text>
-            {/* Decay label and progress bar */}
-            <View style={styles.decayRow}>
-              <Text style={styles.decayLabel}>Decay</Text>
-              <View style={styles.decayBarContainer}>
-                {[...Array(5)].map((_, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.decayBarLevel,
-                      i < habit.decayLevel ? styles.decayBarLevelFilled : styles.decayBarLevel
-                    ]}
-                  />
-                ))}
+          {badHabits.map((habit, idx) => (
+            <TouchableOpacity
+              key={idx}
+              onPress={() => {
+                setEditBadHabitIdx(idx);
+                setEditBadHabitText(habit.name);
+                setEditDecayLevel(habit.decayLevel);
+                setEditExpLossLevel(habit.expLossLevel);
+                setEditBadModalVisible(true);
+              }}
+            >
+              <View style={styles.badHabitBox}>
+                {/* Habit name */}
+                <Text style={styles.badHabitText}>{habit.name}</Text>
+                {/* Decay label and progress bar */}
+                <View style={styles.decayRow}>
+                  <Text style={styles.decayLabel}>Decay ↓</Text>
+                  <View style={styles.decayBarContainer}>
+                    {[...Array(5)].map((_, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.decayBarLevel,
+                          i < habit.decayLevel ? styles.decayBarLevelFilled : null
+                        ]}
+                      />
+                    ))}
+                  </View>
+                </View>
+                {/* EXP loss label and progress bar */}
+                <View style={styles.expLossRow}>
+                  <Text style={styles.expLossLabel}>EXP loss ↓</Text>
+                  <View style={styles.expLossBarContainer}>
+                    {[...Array(5)].map((_, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.expLossBarLevel,
+                          i < habit.expLossLevel ? styles.expLossBarLevelFilled : null
+                        ]}
+                      />
+                    ))}
+                  </View>
+                </View>
               </View>
-            </View>
-            {/* EXP loss label and progress bar */}
-            <View style={styles.expLossRow}>
-              <Text style={styles.expLossLabel}>EXP loss</Text>
-              <View style={styles.expLossBarContainer}>
-                {[...Array(5)].map((_, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.expLossBarLevel,
-                      i < habit.expLossLevel ? styles.expLossBarLevelFilled : styles.expLossBarLevel
-                    ]}
-                  />
-                ))}
-              </View>
-            </View>
-          </View>
-        </TouchableOpacity>
-      ))}
+            </TouchableOpacity>
+          ))}
         </View>
         <TouchableOpacity style={styles.addBadHabit} onPress={handleAddBadButtonPress}>
           <Text style={styles.plus}>+</Text>
@@ -222,6 +299,7 @@ export default function HabitsScreen({
           </View>
         </Modal>
         {/* Modal for editing/deleting bad habit */}
+        {/* Modal for editing/deleting bad habit */}
         <Modal
           visible={editBadModalVisible}
           animationType="slide"
@@ -236,9 +314,7 @@ export default function HabitsScreen({
                   style={{ width: 24, height: 24, marginRight: 6 }}
                   resizeMode="contain"
                 />
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#000' }}>
-                  {coins}
-                </Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#000' }}>{coins}</Text>
               </View>
               {/* Habit name input */}
               <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12, color: '#4b2e19' }}>Edit Bad Habit</Text>
@@ -251,43 +327,51 @@ export default function HabitsScreen({
               />
               {/* Decay row */}
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, justifyContent: 'space-between' }}>
-                <Text style={styles.decayLabel}>Decay</Text>
+                <Text style={styles.decayLabel}>Decay ↓</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <View style={styles.decayBarContainer}>
-                    {[...Array(5)].map((_, i) => (
+                    {[...Array(MAX_LEVEL)].map((_, i) => (
                       <View
                         key={i}
-                        style={[
-                          styles.decayBarLevel,
-                          i < 1 ? styles.decayBarLevelFilled : styles.decayBarLevel // 1/5 filled
-                        ]}
+                        style={[styles.decayBarLevel, i < editDecayLevel ? styles.decayBarLevelFilled : styles.decayBarLevelEmpty]}
                       />
                     ))}
                   </View>
                   <View style={{ width: 16 }} />
-                  <TouchableOpacity onPress={() => { /* upgrade logic here */ }}>
-                    <UpgradeButton cost={10} />
+                  <TouchableOpacity
+                    onPress={handleUpgradeDecay}
+                    disabled={editDecayLevel >= MAX_LEVEL || coins < getUpgradeCost(editDecayLevel)}
+                  >
+                    <UpgradeButton 
+                      cost={getUpgradeCost(editDecayLevel)} 
+                      label="Upgrade" 
+                      maxed={editDecayLevel >= MAX_LEVEL}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
               {/* EXP loss row */}
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, justifyContent: 'space-between' }}>
-                <Text style={styles.expLossLabel}>EXP loss</Text>
+                <Text style={styles.expLossLabel}>EXP loss ↓</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <View style={styles.expLossBarContainer}>
-                    {[...Array(5)].map((_, i) => (
+                    {[...Array(MAX_LEVEL)].map((_, i) => (
                       <View
                         key={i}
-                        style={[
-                          styles.expLossBarLevel,
-                          i < 1 ? styles.expLossBarLevelFilled : styles.expLossBarLevel // 1/5 filled
-                        ]}
+                        style={[styles.expLossBarLevel, i < editExpLossLevel ? styles.expLossBarLevelFilled : styles.expLossBarLevelEmpty]}
                       />
                     ))}
                   </View>
-                  <View style={{ width: 16 }} /> 
-                  <TouchableOpacity onPress={() => { /* upgrade logic here */ }}>
-                    <UpgradeButton cost={10} />
+                  <View style={{ width: 16 }} />
+                  <TouchableOpacity
+                    onPress={handleUpgradeExpLoss}
+                    disabled={editExpLossLevel >= MAX_LEVEL || coins < getUpgradeCost(editExpLossLevel)}
+                  >
+                    <UpgradeButton 
+                      cost={getUpgradeCost(editExpLossLevel)} 
+                      label="Upgrade" 
+                      maxed={editExpLossLevel >= MAX_LEVEL}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -447,14 +531,21 @@ export default function HabitsScreen({
                         key={i}
                         style={[
                           styles.expBarLevel,
-                          i < 1 ? styles.expBarLevelFilled : styles.expBarLevelEmpty // 1/5 filled
+                          i < editExpLevel ? styles.expBarLevelFilled : styles.expBarLevelEmpty
                         ]}
                       />
                     ))}
                   </View>
-                  <View style={{ width: 16 }} /> 
-                  <TouchableOpacity onPress={() => { /* upgrade logic here */ }}>
-                    <UpgradeButton cost={10} />
+                  <View style={{ width: 16 }} />
+                  <TouchableOpacity
+                    onPress={handleUpgradeExp}
+                    disabled={editExpLevel >= MAX_LEVEL || coins < getUpgradeCost(editExpLevel)}
+                  >
+                    <UpgradeButton 
+                      cost={getUpgradeCost(editExpLevel)} 
+                      label="Upgrade" 
+                      maxed={editExpLevel >= MAX_LEVEL}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -468,14 +559,21 @@ export default function HabitsScreen({
                         key={i}
                         style={[
                           styles.goldBarLevel,
-                          i < 1 ? styles.goldBarLevelFilled : styles.goldBarLevelEmpty // 1/5 filled
+                          i < editGoldLevel ? styles.goldBarLevelFilled : styles.goldBarLevelEmpty
                         ]}
                       />
                     ))}
                   </View>
-                  <View style={{ width: 16 }} /> 
-                  <TouchableOpacity onPress={() => { /* upgrade logic here */ }}>
-                    <UpgradeButton cost={10} />
+                  <View style={{ width: 16 }} />
+                  <TouchableOpacity
+                    onPress={handleUpgradeGold}
+                    disabled={editGoldLevel >= MAX_LEVEL || coins < getUpgradeCost(editGoldLevel)}
+                  >
+                    <UpgradeButton 
+                      cost={getUpgradeCost(editGoldLevel)} 
+                      label="Upgrade" 
+                      maxed={editGoldLevel >= MAX_LEVEL}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -742,18 +840,22 @@ const styles = StyleSheet.create({
   decayBarLevelFilled: {
     backgroundColor: '#ffd6d6',
   },
+  decayBarLevelEmpty: {
+    backgroundColor: '#fff',
+  },
   expLossRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
     width: '100%',
-    justifyContent: 'space-between',
+    // Remove space-between, use flex for label and bar
+    // justifyContent: 'space-between',
   },
   expLossLabel: {
     color: '#b71c1c',
     fontSize: 13,
     fontWeight: 'bold',
-    marginRight: 10,
+    marginRight: 5, // Reduced margin for tighter spacing
   },
   expLossBarContainer: {
     flexDirection: 'row',
@@ -770,5 +872,8 @@ const styles = StyleSheet.create({
   },
   expLossBarLevelFilled: {
     backgroundColor: '#ffcdd2',
+  },
+  expLossBarLevelEmpty: {
+    backgroundColor: '#fff',
   },
 });

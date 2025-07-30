@@ -8,6 +8,10 @@ export default function TreeScreen({
   setCoins,
   gems = 10,
   setGems,
+  exp = 0,
+  setExp,
+  decay = 0,
+  setDecay,
 }: {
   goodHabits: { name: string; expLevel: number; goldLevel: number }[];
   badHabits: { name: string; decayLevel: number; expLossLevel: number }[];
@@ -15,14 +19,25 @@ export default function TreeScreen({
   setCoins?: (c: number) => void;
   gems?: number;
   setGems?: (g: number) => void;
+  exp?: number;
+  setExp?: (e: number) => void;
+  decay?: number;
+  setDecay?: (d: number) => void;
 }) {
-  const [exp, setExp] = useState(1);
-  const [decay, setDecay] = useState(1);
+  const EXP_TO_LEVEL = 100; // First level requires 100 exp
+
+  // Decay gain scaling by level (should match HabitsScreen)
+  const decayGainByLevel = [10, 8, 6, 4, 2];
+  const getDecayGain = (level: number) => decayGainByLevel[(level || 1) - 1] || 2;
+
+  // EXP loss scaling by expLossLevel
+  const expLossByLevel = [20, 16, 12, 8, 4];
+  const getExpLoss = (level: number) => expLossByLevel[(level || 1) - 1] || 4;
   // coins, setCoins, gems, setGems are now received as props
 
   // Checkbox state for good and bad habits
-  const [checkedGood, setCheckedGood] = useState<boolean[]>(goodHabits.map(() => false));
-  const [checkedBad, setCheckedBad] = useState<boolean[]>(badHabits.map(() => false));
+  const [checkedGood, setCheckedGood] = React.useState<boolean[]>(goodHabits.map(() => false));
+  const [checkedBad, setCheckedBad] = React.useState<boolean[]>(badHabits.map(() => false));
 
   // Update checkbox state when habits change
   React.useEffect(() => {
@@ -33,21 +48,31 @@ export default function TreeScreen({
   }, [badHabits]);
 
   // Handler for checking a good habit
+  const expGainLevels = [10, 20, 30, 40, 50];
+  const coinGainLevels = [10, 20, 30, 40, 50];
   const handleCheckGoodHabit = (idx: number) => {
     setCheckedGood(prev => prev.map((v, i) => i === idx ? !v : v));
     if (!checkedGood[idx]) {
-      // TEST LOGIC: advance exp and coins by test values
-      setExp(prev => Math.min(prev + 15, 100));
-      if (setCoins && typeof coins === 'number') setCoins(coins + 10);
+      // Use expLevel and goldLevel for gain
+      const expLevel = goodHabits[idx]?.expLevel || 1;
+      const goldLevel = goodHabits[idx]?.goldLevel || 1;
+      const expGain = expGainLevels[Math.max(0, Math.min(expLevel - 1, 4))];
+      const coinGain = coinGainLevels[Math.max(0, Math.min(goldLevel - 1, 4))];
+      if (setExp) setExp(Math.min(exp + expGain, 100));
+      if (setCoins && typeof coins === 'number') setCoins(coins + coinGain);
     }
   };
 
   const handleCheckBadHabit = (idx: number) => {
     setCheckedBad(prev => prev.map((v, i) => i === idx ? !v : v));
     if (!checkedBad[idx]) {
-      // TEST LOGIC: advance decay and decrease exp by test values
-      setDecay(prev => Math.min(prev + 20, 100));
-      setExp(prev => Math.max(prev - 10, 0));
+      // Use decayLevel and expLossLevel for gain/loss
+      const decayLevel = badHabits[idx]?.decayLevel || 1;
+      const expLossLevel = badHabits[idx]?.expLossLevel || 1;
+      const decayGain = getDecayGain(decayLevel);
+      const expLoss = getExpLoss(expLossLevel);
+      if (setDecay) setDecay(Math.min(decay + decayGain, 100));
+      if (setExp) setExp(Math.max(exp - expLoss, 0));
     }
   };
 
@@ -66,9 +91,9 @@ export default function TreeScreen({
       {/* Top 70%: Tree background */}
       <View style={{flex: 7}}>
         <ImageBackground source={require('../assets/tree_background.png')} style={styles.treeBg}>
-          <View style={styles.screen}>
-            {/* Tree image and other content can go here */}
-          </View>
+            <View style={styles.screen}>
+              {/* Tree image and other content can go here */}
+            </View>
         </ImageBackground>
       </View>
       {/* Bottom 30%: Brown frame with progress bars and habits */}
@@ -84,8 +109,8 @@ export default function TreeScreen({
             </View>
             <View style={{ width: 10 }} />
             <View style={{ flex: 1, minWidth: 0, justifyContent: 'center', alignItems: 'center', height: 20 }}>
-              <View style={[styles.progressBarBg, { width: '100%', height: 20, marginVertical: 0 }]}> 
-                <View style={[styles.progressBar, { width: `${exp}%`, backgroundColor: '#4bbf7f', height: 20 }]} />
+            <View style={[styles.progressBarBg, { width: '100%', height: 20, marginVertical: 0 }]}> 
+              <View style={[styles.progressBar, { width: `${Math.min((exp / EXP_TO_LEVEL) * 100, 100)}%`, backgroundColor: '#4bbf7f', height: 20 }]} />
               </View>
             </View>
             <View style={{ width: 54 }} />

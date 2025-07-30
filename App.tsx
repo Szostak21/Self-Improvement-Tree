@@ -19,8 +19,10 @@ export default function App() {
   const [badHabits, setBadHabits] = useState<
     { name: string; decayLevel: number; expLossLevel: number }[]
   >([]);
-  const [coins, setCoins] = useState(100);
+  const [coins, setCoins] = useState(1000);
   const [gems, setGems] = useState(10);
+  const [exp, setExp] = useState(0);
+  const [decay, setDecay] = useState(0);
   const [assetsLoaded, setAssetsLoaded] = useState(false);
 
   useEffect(() => {
@@ -46,7 +48,10 @@ export default function App() {
   return (
     <NavigationContainer>
       <Tab.Navigator initialRouteName="Tree">
-        <Tab.Screen name="Shop" component={ShopScreen} />
+        <Tab.Screen
+          name="Shop"
+          children={() => <ShopScreen setDecay={setDecay} setExp={setExp} />}
+        />
         <Tab.Screen
           name="Habits"
           options={{ headerShown: false }}
@@ -74,6 +79,10 @@ export default function App() {
               setCoins={setCoins}
               gems={gems}
               setGems={setGems}
+              exp={exp}
+              setExp={setExp}
+              decay={decay}
+              setDecay={setDecay}
             />
           )}
         </Tab.Screen>

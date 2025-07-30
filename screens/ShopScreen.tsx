@@ -1,9 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Button } from 'react-native';
 
-export default function ShopScreen() {
+export default function ShopScreen({ setDecay, setExp }: { setDecay?: (d: number) => void; setExp?: (e: number) => void }) {
+  const handleSetDecayZero = () => {
+    if (setDecay) setDecay(0);
+  };
+  const handleSetExpZero = () => {
+    if (setExp) setExp(0);
+  };
   return (
-    <View style={styles.screen}><Text>Shop</Text></View>
+    <View style={styles.screen}>
+      <Button title="Set decay to 0" onPress={handleSetDecayZero} />
+      <View style={{ height: 16 }} />
+      <Button title="Set EXP to 0" onPress={handleSetExpZero} />
+    </View>
   );
 }
 
