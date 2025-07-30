@@ -28,6 +28,13 @@ export default function App() {
   useEffect(() => {
     async function loadAssets() {
       await Asset.loadAsync([
+        require('./assets/tree/tree_1.png'),
+        require('./assets/tree/tree_2.png'),
+        require('./assets/tree/tree_3.png'),
+        require('./assets/tree/tree_4.png'),
+        require('./assets/tree/tree_5.png'),
+        require('./assets/tree/tree_6.png'),
+        require('./assets/tree/tree_7.png'),
         require('./assets/coin.png'),
         require('./assets/gem.png'),
         require('./assets/tree_background.png'),

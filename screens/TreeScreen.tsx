@@ -24,7 +24,8 @@ export default function TreeScreen({
   decay?: number;
   setDecay?: (d: number) => void;
 }) {
-  const EXP_TO_LEVEL = 100; // First level requires 100 exp
+  const [expToLevel, setExpToLevel] = React.useState(100); // First level requires 100 exp
+  const [treeStage, setTreeStage] = React.useState(1); // 1: tree_1, 2: tree_2
 
   // Decay gain scaling by level (should match HabitsScreen)
   const decayGainByLevel = [10, 8, 6, 4, 2];
@@ -58,7 +59,16 @@ export default function TreeScreen({
       const goldLevel = goodHabits[idx]?.goldLevel || 1;
       const expGain = expGainLevels[Math.max(0, Math.min(expLevel - 1, 4))];
       const coinGain = coinGainLevels[Math.max(0, Math.min(goldLevel - 1, 4))];
-      if (setExp) setExp(Math.min(exp + expGain, 100));
+      let newExp = exp + expGain;
+      if (newExp >= expToLevel) {
+        // Level up: change tree, reset exp, increase max exp
+        setTreeStage(2); // update tree first for instant switch
+        if (setExp) setExp(0);
+        setExpToLevel(200);
+        if (setCoins && typeof coins === 'number') setCoins(coins + coinGain);
+        return;
+      }
+      if (setExp) setExp(Math.min(newExp, expToLevel));
       if (setCoins && typeof coins === 'number') setCoins(coins + coinGain);
     }
   };
@@ -91,9 +101,19 @@ export default function TreeScreen({
       {/* Top 70%: Tree background */}
       <View style={{flex: 7}}>
         <ImageBackground source={require('../assets/tree_background.png')} style={styles.treeBg}>
-            <View style={styles.screen}>
-              {/* Tree image and other content can go here */}
+          {/* Tree image in the middle of the screen, centered horizontally, with independent position for each stage */}
+          {treeStage === 1 ? (
+            <View style={{ position: 'absolute', top: '57%', left: '50%', transform: [{ translateX: -41.5 }], zIndex: 2 }}>
+              <Image source={require('../assets/tree/tree_1.png')} style={{ width: 83, height: 83, resizeMode: 'contain' }} />
             </View>
+          ) : (
+            <View style={{ position: 'absolute', top: '56%', left: '50%', transform: [{ translateX: -41.5 }], zIndex: 2 }}>
+              <Image source={require('../assets/tree/tree_2.png')} style={{ width: 83, height: 83, resizeMode: 'contain' }} />
+            </View>
+          )}
+          <View style={styles.screen}>
+            {/* Other content can go here */}
+          </View>
         </ImageBackground>
       </View>
       {/* Bottom 30%: Brown frame with progress bars and habits */}
@@ -110,7 +130,7 @@ export default function TreeScreen({
             <View style={{ width: 10 }} />
             <View style={{ flex: 1, minWidth: 0, justifyContent: 'center', alignItems: 'center', height: 20 }}>
             <View style={[styles.progressBarBg, { width: '100%', height: 20, marginVertical: 0 }]}> 
-              <View style={[styles.progressBar, { width: `${Math.min((exp / EXP_TO_LEVEL) * 100, 100)}%`, backgroundColor: '#4bbf7f', height: 20 }]} />
+              <View style={[styles.progressBar, { width: `${Math.min((exp / expToLevel) * 100, 100)}%`, backgroundColor: '#4bbf7f', height: 20 }]} />
               </View>
             </View>
             <View style={{ width: 54 }} />
