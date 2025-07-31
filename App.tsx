@@ -19,7 +19,7 @@ export default function App() {
   const [badHabits, setBadHabits] = useState<
     { name: string; decayLevel: number; expLossLevel: number }[]
   >([]);
-  const [coins, setCoins] = useState(1000);
+  const [coins, setCoins] = useState(5000);
   const [gems, setGems] = useState(10);
   const [exp, setExp] = useState(0);
   const [decay, setDecay] = useState(0);

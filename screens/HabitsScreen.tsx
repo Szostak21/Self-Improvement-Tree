@@ -49,8 +49,9 @@ export default function HabitsScreen({
   const [editGoldLevel, setEditGoldLevel] = useState(1);
 
   // Upgrade handlers for good and bad habits
-  const upgradeCosts = [10, 20, 50, 100, 100];
-  const getUpgradeCost = (level: number) => upgradeCosts[level - 1] || 100;
+  const upgradeCosts = [10, 50, 100, 500, 1000];
+  // Now, cost for upgrading from n to n+1 is upgradeCosts[n]
+  const getUpgradeCost = (level: number) => upgradeCosts[level] || upgradeCosts[upgradeCosts.length - 1];
   const MAX_LEVEL = 5;
 
   // Decay gain scaling by level
@@ -138,7 +139,7 @@ export default function HabitsScreen({
     if (newHabit.trim()) {
       setGoodHabits([
         ...goodHabits,
-        { name: newHabit.trim(), expLevel: 1, goldLevel: 1 },
+        { name: newHabit.trim(), expLevel: 0, goldLevel: 0 },
       ]);
       setNewHabit('');
       setModalVisible(false);
@@ -176,7 +177,7 @@ export default function HabitsScreen({
     if (newBadHabit.trim()) {
       setBadHabits([
         ...badHabits,
-        { name: newBadHabit.trim(), decayLevel: 1, expLossLevel: 1 },
+        { name: newBadHabit.trim(), decayLevel: 0, expLossLevel: 0 },
       ]);
       setNewBadHabit('');
       setBadModalVisible(false);

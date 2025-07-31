@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, Image, ImageBackground, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 
+// Preload all tree graphics
+const treeImages = {
+  tree_1: require('../assets/tree/tree_1.png'),
+  tree_2: require('../assets/tree/tree_2.png'),
+  tree_3: require('../assets/tree/tree_3.png'),
+  tree_4: require('../assets/tree/tree_4.png'),
+  tree_5: require('../assets/tree/tree_5.png'),
+  tree_6: require('../assets/tree/tree_6.png'),
+  tree_7: require('../assets/tree/tree_7.png'),
+};
+
 export default function TreeScreen({
   goodHabits = [],
   badHabits = [],
@@ -24,8 +35,17 @@ export default function TreeScreen({
   decay?: number;
   setDecay?: (d: number) => void;
 }) {
-  const [expToLevel, setExpToLevel] = React.useState(100); // First level requires 100 exp
-  const [treeStage, setTreeStage] = React.useState(1); // 1: tree_1, 2: tree_2
+  // Tree stages and exp requirements
+  const expStages = [100, 200, 300, 400, 500, 600, 700];
+  // Use percentages for top position for responsive layout
+  const treeStageTops = ['57%', '55%', '52%', '48%', '46%', '46%', '46%']; // % top for each stage
+  const treeStageScales = [1, 1.2, 1.7, 2.4, 2.7, 2.7, 2.8]; // scale for each stage
+  const [treeStage, setTreeStage] = React.useState(1); // 1: tree_1, ..., 7: tree_7
+  const [expToLevel, setExpToLevel] = React.useState(expStages[0]);
+  const treeStageTop = treeStageTops[treeStage - 1];
+  // Convert percentage string to number for marginTop
+  const treeStageMarginTop = parseInt(treeStageTop);
+  const treeStageScale = treeStageScales[treeStage - 1];
 
   // Decay gain scaling by level (should match HabitsScreen)
   const decayGainByLevel = [10, 8, 6, 4, 2];
@@ -62,9 +82,10 @@ export default function TreeScreen({
       let newExp = exp + expGain;
       if (newExp >= expToLevel) {
         // Level up: change tree, reset exp, increase max exp
-        setTreeStage(2); // update tree first for instant switch
+        const nextStage = Math.min(treeStage + 1, 7);
+        setTreeStage(nextStage); // update tree first for instant switch
         if (setExp) setExp(0);
-        setExpToLevel(200);
+        setExpToLevel(expStages[nextStage - 1]);
         if (setCoins && typeof coins === 'number') setCoins(coins + coinGain);
         return;
       }
@@ -102,15 +123,18 @@ export default function TreeScreen({
       <View style={{flex: 7}}>
         <ImageBackground source={require('../assets/tree_background.png')} style={styles.treeBg}>
           {/* Tree image in the middle of the screen, centered horizontally, with independent position for each stage */}
-          {treeStage === 1 ? (
-            <View style={{ position: 'absolute', top: '57%', left: '50%', transform: [{ translateX: -41.5 }], zIndex: 2 }}>
-              <Image source={require('../assets/tree/tree_1.png')} style={{ width: 83, height: 83, resizeMode: 'contain' }} />
-            </View>
-          ) : (
-            <View style={{ position: 'absolute', top: '56%', left: '50%', transform: [{ translateX: -41.5 }], zIndex: 2 }}>
-              <Image source={require('../assets/tree/tree_2.png')} style={{ width: 83, height: 83, resizeMode: 'contain' }} />
-            </View>
-          )}
+          {/* Tree image in the middle of the screen, centered horizontally, with independent position for each stage */}
+          <View style={{ position: 'absolute', top: 0, left: '50%', transform: [{ translateX: -41.5 }], zIndex: 2, marginTop: `${treeStageMarginTop}%` }}>
+            <Image
+              source={(treeImages as any)[`tree_${treeStage}`]}
+              style={{
+                width: 83,
+                height: 83,
+                resizeMode: 'contain',
+                transform: [{ scale: treeStageScale }],
+              }}
+            />
+          </View>
           <View style={styles.screen}>
             {/* Other content can go here */}
           </View>
