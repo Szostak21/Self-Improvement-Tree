@@ -297,7 +297,11 @@ gemRewardsByStage = [0, 1, 1, 2, 2, 4, 10],
           {/* Habits below progress bars */}
           <View style={styles.habitsRow}>
             <View style={styles.habitsColumn}>
-              <ScrollView style={styles.habitsList} contentContainerStyle={{alignItems: 'center'}}>
+              <ScrollView
+                style={[styles.habitsList, { minHeight: 80, maxHeight: 140 }]} 
+                contentContainerStyle={{alignItems: 'center', paddingBottom: 24}}
+                showsVerticalScrollIndicator={false}
+              >
                 {badHabits.length === 0 && (
                   <Text style={styles.habitEmpty}>No bad habits</Text>
                 )}
@@ -320,7 +324,11 @@ gemRewardsByStage = [0, 1, 1, 2, 2, 4, 10],
               </ScrollView>
             </View>
             <View style={styles.habitsColumn}>
-              <ScrollView style={styles.habitsList} contentContainerStyle={{alignItems: 'center'}}>
+              <ScrollView
+                style={[styles.habitsList, { minHeight: 80, maxHeight: 140 }]} 
+                contentContainerStyle={{alignItems: 'center', paddingBottom: 24}}
+                showsVerticalScrollIndicator={false}
+              >
                 {goodHabits.length === 0 && (
                   <Text style={styles.habitEmpty}>No good habits</Text>
                 )}

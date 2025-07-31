@@ -28,6 +28,7 @@ export default function App() {
   useEffect(() => {
     async function loadAssets() {
       await Asset.loadAsync([
+        // Tree images
         require('./assets/tree/tree_1.png'),
         require('./assets/tree/tree_2.png'),
         require('./assets/tree/tree_3.png'),
@@ -38,6 +39,9 @@ export default function App() {
         require('./assets/coin.png'),
         require('./assets/gem.png'),
         require('./assets/tree_background.png'),
+        require('./assets/items/calendar.png'),
+        require('./assets/items/fertilizer.png'),
+        require('./assets/items/shovel.png'),
       ]);
       setAssetsLoaded(true);
     }
@@ -57,7 +61,8 @@ export default function App() {
       <Tab.Navigator initialRouteName="Tree">
         <Tab.Screen
           name="Shop"
-          children={() => <ShopScreen setDecay={setDecay} setExp={setExp} />}
+          options={{ headerShown: false }}
+          children={() => <ShopScreen setDecay={setDecay} setExp={setExp} coins={coins} gems={gems} />}
         />
         <Tab.Screen
           name="Habits"

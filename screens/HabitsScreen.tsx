@@ -32,6 +32,7 @@ export default function HabitsScreen({
   setBadHabits,
   coins,
   setCoins,
+  upgradeMaxGoodHabits,
 }: {
   goodHabits: { name: string; expLevel: number; goldLevel: number }[];
   setGoodHabits: React.Dispatch<React.SetStateAction<{ name: string; expLevel: number; goldLevel: number }[]>>;
@@ -39,6 +40,7 @@ export default function HabitsScreen({
   setBadHabits: React.Dispatch<React.SetStateAction<{ name: string; decayLevel: number; expLossLevel: number }[]>>;
   coins: number;
   setCoins: React.Dispatch<React.SetStateAction<number>>;
+  upgradeMaxGoodHabits?: React.RefObject<() => void>;
 }) {
   // EXP gain by level: 0:10, 1:20, 2:30, 3:50, 4:100, 5:200
   // expLevel 0 (bar 0/5): 10, expLevel 1 (bar 1/5): 20, ..., expLevel 5 (bar 5/5): 200
@@ -134,7 +136,7 @@ export default function HabitsScreen({
     setEditGoldLevel(lvl => lvl + 1);
     setCoins(coins - cost);
   };
-  const [maxGoodHabits, setMaxGoodHabits] = useState(2);
+  const [maxGoodHabits, setMaxGoodHabits] = useState(1);
   const [limitModalVisible, setLimitModalVisible] = useState(false);
 
   const [badModalVisible, setBadModalVisible] = useState(false);
@@ -144,7 +146,18 @@ export default function HabitsScreen({
   const [editBadHabitText, setEditBadHabitText] = useState('');
   const [editDecayLevel, setEditDecayLevel] = useState(1);
   const [editExpLossLevel, setEditExpLossLevel] = useState(1);
-  const [maxBadHabits, setMaxBadHabits] = useState(2);
+  const [maxBadHabits, setMaxBadHabits] = useState(6);
+  // Function to upgrade maxGoodHabits (called from ShopScreen when calendar is bought)
+  const handleUpgradeMaxGoodHabits = () => {
+    setMaxGoodHabits(prev => Math.min(prev + 1, 6));
+  };
+
+  // If upgradeMaxGoodHabits prop is provided, assign the function
+  React.useEffect(() => {
+    if (upgradeMaxGoodHabits) {
+      upgradeMaxGoodHabits.current = handleUpgradeMaxGoodHabits;
+    }
+  }, [upgradeMaxGoodHabits]);
   const [badLimitModalVisible, setBadLimitModalVisible] = useState(false);
 
   // Good habits logic
