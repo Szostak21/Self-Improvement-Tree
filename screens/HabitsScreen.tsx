@@ -40,6 +40,11 @@ export default function HabitsScreen({
   coins: number;
   setCoins: React.Dispatch<React.SetStateAction<number>>;
 }) {
+  // EXP gain by level: 0:10, 1:20, 2:30, 3:50, 4:100, 5:200
+  // expLevel 0 (bar 0/5): 10, expLevel 1 (bar 1/5): 20, ..., expLevel 5 (bar 5/5): 200
+  const expGainLevels = [10, 20, 30, 50, 100, 200];
+  // Gold gain by level: 0:10, 1:15, 2:20, 3:30, 4:50, 5:100
+  const goldGainLevels = [10, 15, 20, 30, 50, 100];
   const [modalVisible, setModalVisible] = useState(false);
   const [newHabit, setNewHabit] = useState('');
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -49,19 +54,27 @@ export default function HabitsScreen({
   const [editGoldLevel, setEditGoldLevel] = useState(1);
 
   // Upgrade handlers for good and bad habits
+  // New upgrade costs for bad habits: 0:10, 1:20, 2:50, 3:100, 4:200 (for upgrades from 0→1, 1→2, ..., 4→5)
+  const badUpgradeCosts = [10, 20, 50, 100, 200]; // 5 upgrades, 6 levels (0-5)
+  // Now, cost for upgrading from n to n+1 is badUpgradeCosts[n]
+  const getBadUpgradeCost = (level: number) => badUpgradeCosts[Math.max(0, Math.min(level, badUpgradeCosts.length - 1))];
+  // Good habits upgrade costs (unchanged): 0:10, 1:50, 2:100, 3:500, 4:1000 (for upgrades from 0→1, ..., 4→5)
   const upgradeCosts = [10, 50, 100, 500, 1000];
-  // Now, cost for upgrading from n to n+1 is upgradeCosts[n]
-  const getUpgradeCost = (level: number) => upgradeCosts[level] || upgradeCosts[upgradeCosts.length - 1];
-  const MAX_LEVEL = 5;
+  const getUpgradeCost = (level: number) => upgradeCosts[Math.max(0, Math.min(level, upgradeCosts.length - 1))];
+  const MAX_LEVEL = 5; // max level is 5, starting at 0
 
-  // Decay gain scaling by level
-  const decayGainByLevel = [10, 8, 6, 4, 2];
-  const getDecayGain = (level: number) => decayGainByLevel[(level || 1) - 1] || 2;
+  // Decay gain scaling by level (0-5): lvl0=10, lvl1=8, lvl2=6, lvl3=4, lvl4=2, lvl5=0
+  const decayGainByLevel = [10, 8, 6, 4, 2, 0]; // 6 levels
+  const getDecayGain = (level: number) => decayGainByLevel[Math.max(0, Math.min(level, decayGainByLevel.length - 1))];
+
+  // New EXP loss scaling by level (0-5): 0:40, 1:32, 2:24, 3:16, 4:8, 5:4
+  const expLossByLevel = [40, 32, 24, 16, 8, 4]; // 6 levels
+  const getExpLoss = (level: number) => expLossByLevel[Math.max(0, Math.min(level, expLossByLevel.length - 1))];
 
   // Upgrade handlers for bad habits
   const handleUpgradeDecay = () => {
     if (editBadHabitIdx === null) return;
-    const cost = getUpgradeCost(editDecayLevel);
+    const cost = getBadUpgradeCost(editDecayLevel);
     if (coins < cost || editDecayLevel >= MAX_LEVEL) return;
     setBadHabits(prev => {
       const updated = [...prev];
@@ -77,7 +90,7 @@ export default function HabitsScreen({
 
   const handleUpgradeExpLoss = () => {
     if (editBadHabitIdx === null) return;
-    const cost = getUpgradeCost(editExpLossLevel);
+    const cost = getBadUpgradeCost(editExpLossLevel);
     if (coins < cost || editExpLossLevel >= MAX_LEVEL) return;
     setBadHabits(prev => {
       const updated = [...prev];
@@ -341,10 +354,10 @@ export default function HabitsScreen({
                   <View style={{ width: 16 }} />
                   <TouchableOpacity
                     onPress={handleUpgradeDecay}
-                    disabled={editDecayLevel >= MAX_LEVEL || coins < getUpgradeCost(editDecayLevel)}
+                    disabled={editDecayLevel >= MAX_LEVEL || coins < getBadUpgradeCost(editDecayLevel)}
                   >
                     <UpgradeButton 
-                      cost={getUpgradeCost(editDecayLevel)} 
+                      cost={getBadUpgradeCost(editDecayLevel)} 
                       label="Upgrade" 
                       maxed={editDecayLevel >= MAX_LEVEL}
                     />
@@ -366,10 +379,10 @@ export default function HabitsScreen({
                   <View style={{ width: 16 }} />
                   <TouchableOpacity
                     onPress={handleUpgradeExpLoss}
-                    disabled={editExpLossLevel >= MAX_LEVEL || coins < getUpgradeCost(editExpLossLevel)}
+                    disabled={editExpLossLevel >= MAX_LEVEL || coins < getBadUpgradeCost(editExpLossLevel)}
                   >
                     <UpgradeButton 
-                      cost={getUpgradeCost(editExpLossLevel)} 
+                      cost={getBadUpgradeCost(editExpLossLevel)} 
                       label="Upgrade" 
                       maxed={editExpLossLevel >= MAX_LEVEL}
                     />
@@ -637,7 +650,7 @@ const styles = StyleSheet.create({
   },
   habitsHalfGood: {
     flex: 1,
-    backgroundColor: '#7fd8be', // slightly darker light green
+    backgroundColor: '#81bd7eff', // slightly darker light green
     alignItems: 'center',
     justifyContent: 'flex-start',
     borderLeftWidth: 4,
@@ -645,7 +658,7 @@ const styles = StyleSheet.create({
   },
   habitsHalfBad: {
     flex: 1,
-    backgroundColor: '#bfa16b', // slightly darker light brown
+    backgroundColor: '#755d57ff', // slightly darker light brown
     alignItems: 'center',
     justifyContent: 'flex-start',
   },

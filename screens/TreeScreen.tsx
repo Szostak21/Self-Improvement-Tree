@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Image, ImageBackground, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, Image, ImageBackground, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
 
 // Preload all tree graphics
 const treeImages = {
@@ -23,6 +23,7 @@ export default function TreeScreen({
   setExp,
   decay = 0,
   setDecay,
+gemRewardsByStage = [0, 1, 1, 2, 2, 4, 10],
 }: {
   goodHabits: { name: string; expLevel: number; goldLevel: number }[];
   badHabits: { name: string; decayLevel: number; expLossLevel: number }[];
@@ -34,9 +35,41 @@ export default function TreeScreen({
   setExp?: (e: number) => void;
   decay?: number;
   setDecay?: (d: number) => void;
+  gemRewardsByStage?: number[];
 }) {
+  // Popup state for stage up
+  const [showStagePopup, setShowStagePopup] = React.useState(false);
+  const [popupStage, setPopupStage] = React.useState(1);
+  const [popupGemReward, setPopupGemReward] = React.useState(1);
+  React.useEffect(() => {
+    if (showStagePopup) {
+      Animated.timing(popupAnim, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      popupAnim.setValue(0);
+    }
+  }, [showStagePopup]);
+  // Animation for popup
+  const popupAnim = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    if (showStagePopup) {
+      Animated.timing(popupAnim, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      popupAnim.setValue(0);
+    }
+  }, [showStagePopup]);
+  // Upgrade costs for bad habits (0-5): 0:5, 1:20, 2:50, 3:200, 4:500, 5:1000
+  const badUpgradeCosts = [5, 20, 50, 200, 500, 1000];
+  const getBadUpgradeCost = (level: number) => badUpgradeCosts[Math.max(0, Math.min(level, 5))];
   // Tree stages and exp requirements
-  const expStages = [100, 200, 300, 400, 500, 600, 700];
+  const expStages = [40, 100, 160, 200, 300, 400, 0];
   // Use percentages for top position for responsive layout
   const treeStageTops = ['57%', '55%', '52%', '48%', '46%', '46%', '46%']; // % top for each stage
   const treeStageScales = [1, 1.2, 1.7, 2.4, 2.7, 2.7, 2.8]; // scale for each stage
@@ -47,49 +80,82 @@ export default function TreeScreen({
   const treeStageMarginTop = parseInt(treeStageTop);
   const treeStageScale = treeStageScales[treeStage - 1];
 
-  // Decay gain scaling by level (should match HabitsScreen)
-  const decayGainByLevel = [10, 8, 6, 4, 2];
-  const getDecayGain = (level: number) => decayGainByLevel[(level || 1) - 1] || 2;
+  // New decay gain scaling by level (0-5): 0:20, 1:16, 2:12, 3:8, 4:4, 5:2
+  const decayGainByLevel = [20, 16, 12, 8, 4, 2];
+  const getDecayGain = (level: number) => decayGainByLevel[Math.max(0, Math.min(level, 5))];
 
-  // EXP loss scaling by expLossLevel
-  const expLossByLevel = [20, 16, 12, 8, 4];
-  const getExpLoss = (level: number) => expLossByLevel[(level || 1) - 1] || 4;
+  // New EXP loss scaling by expLossLevel (0-5): 0:-10, 1:-8, 2:-6, 3:-4, 4:-2, 5:0
+  const expLossByLevel = [10, 8, 6, 4, 2, 0];
+  const getExpLoss = (level: number) => expLossByLevel[Math.max(0, Math.min(level, 5))];
   // coins, setCoins, gems, setGems are now received as props
 
   // Checkbox state for good and bad habits
   const [checkedGood, setCheckedGood] = React.useState<boolean[]>(goodHabits.map(() => false));
   const [checkedBad, setCheckedBad] = React.useState<boolean[]>(badHabits.map(() => false));
 
-  // Update checkbox state when habits change
+  // Only update checkedGood/checkedBad if habits are added or removed (not upgraded)
   React.useEffect(() => {
-    setCheckedGood(goodHabits.map(() => false));
+    if (goodHabits.length !== checkedGood.length) {
+      setCheckedGood(goodHabits.map(() => false));
+    }
   }, [goodHabits]);
   React.useEffect(() => {
-    setCheckedBad(badHabits.map(() => false));
+    if (badHabits.length !== checkedBad.length) {
+      setCheckedBad(badHabits.map(() => false));
+    }
   }, [badHabits]);
 
   // Handler for checking a good habit
-  const expGainLevels = [10, 20, 30, 40, 50];
-  const coinGainLevels = [10, 20, 30, 40, 50];
+  // EXP gain by level: 0:10, 1:20, 2:30, 3:50, 4:100, 5:200
+  // expLevel 0 (bar 0/5): 10, expLevel 1 (bar 1/5): 20, ..., expLevel 5 (bar 5/5): 200
+  const expGainLevels = [10, 20, 30, 50, 100, 200];
+  // Gold gain by level: 0:10, 1:15, 2:20, 3:30, 4:50, 5:100
+  const goldGainLevels = [10, 15, 20, 30, 50, 100];
   const handleCheckGoodHabit = (idx: number) => {
     setCheckedGood(prev => prev.map((v, i) => i === idx ? !v : v));
     if (!checkedGood[idx]) {
       // Use expLevel and goldLevel for gain
-      const expLevel = goodHabits[idx]?.expLevel || 1;
-      const goldLevel = goodHabits[idx]?.goldLevel || 1;
-      const expGain = expGainLevels[Math.max(0, Math.min(expLevel - 1, 4))];
-      const coinGain = coinGainLevels[Math.max(0, Math.min(goldLevel - 1, 4))];
+      const expLevel = goodHabits[idx]?.expLevel ?? 0;
+      const goldLevel = goodHabits[idx]?.goldLevel ?? 0;
+      // Clamp expLevel and goldLevel between 0 and 5
+      const expGain = expGainLevels[Math.max(0, Math.min(expLevel, 5))];
+      const coinGain = goldGainLevels[Math.max(0, Math.min(goldLevel, goldGainLevels.length - 1))];
       let newExp = exp + expGain;
-      if (newExp >= expToLevel) {
-        // Level up: change tree, reset exp, increase max exp
-        const nextStage = Math.min(treeStage + 1, 7);
-        setTreeStage(nextStage); // update tree first for instant switch
-        if (setExp) setExp(0);
-        setExpToLevel(expStages[nextStage - 1]);
-        if (setCoins && typeof coins === 'number') setCoins(coins + coinGain);
-        return;
+      let currentStage = treeStage;
+      let currentExpToLevel = expToLevel;
+      let leftoverExp = newExp;
+      let leveledUp = false;
+      let leveledUpStage = treeStage;
+      let stagesLeveled = 0;
+      let totalGemReward = 0;
+      let lastStage = treeStage;
+      while (leftoverExp >= currentExpToLevel && currentStage < 7) {
+        leftoverExp -= currentExpToLevel;
+        currentStage += 1;
+        currentExpToLevel = expStages[currentStage - 1];
+        leveledUp = true;
+        leveledUpStage = currentStage;
+        stagesLeveled += 1;
+        // Add gem reward for each stage reached (use array, clamp index)
+        if (currentStage > 1 && currentStage <= 7) {
+          totalGemReward += gemRewardsByStage[Math.max(0, Math.min(currentStage - 1, gemRewardsByStage.length - 1))];
+          lastStage = currentStage;
+        }
       }
-      if (setExp) setExp(Math.min(newExp, expToLevel));
+      if (leveledUp) {
+        setTreeStage(currentStage);
+        if (setExp) setExp(leftoverExp);
+        setExpToLevel(currentExpToLevel);
+        // Show popup only for stages 2-7 (stage 1 is default, so show for 2-7)
+        if (lastStage > 1 && lastStage <= 7) {
+          setPopupStage(lastStage);
+          setPopupGemReward(totalGemReward);
+          setShowStagePopup(true);
+          if (setGems) setGems((gems ?? 0) + totalGemReward);
+        }
+      } else {
+        if (setExp) setExp(Math.min(leftoverExp, currentExpToLevel));
+      }
       if (setCoins && typeof coins === 'number') setCoins(coins + coinGain);
     }
   };
@@ -98,8 +164,9 @@ export default function TreeScreen({
     setCheckedBad(prev => prev.map((v, i) => i === idx ? !v : v));
     if (!checkedBad[idx]) {
       // Use decayLevel and expLossLevel for gain/loss
-      const decayLevel = badHabits[idx]?.decayLevel || 1;
-      const expLossLevel = badHabits[idx]?.expLossLevel || 1;
+      // decayLevel and expLossLevel are now 0-based (0-5)
+      const decayLevel = badHabits[idx]?.decayLevel ?? 0;
+      const expLossLevel = badHabits[idx]?.expLossLevel ?? 0;
       const decayGain = getDecayGain(decayLevel);
       const expLoss = getExpLoss(expLossLevel);
       if (setDecay) setDecay(Math.min(decay + decayGain, 100));
@@ -109,6 +176,61 @@ export default function TreeScreen({
 
   return (
     <View style={{flex: 1}}>
+      {/* Popup for stage up */}
+      {showStagePopup && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          zIndex: 100,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <Animated.View
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: 16,
+              padding: 32,
+              alignItems: 'center',
+              width: '80%',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 8,
+              opacity: popupAnim,
+              transform: [{ scale: popupAnim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) }],
+            }}
+          >
+            <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#176d3b', marginBottom: 12, textAlign: 'center' }}>
+              Congratulations!
+            </Text>
+            <Text style={{ fontSize: 18, color: '#176d3b', marginBottom: 18, textAlign: 'center' }}>
+              Your tree has reached stage {popupStage}!
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 18 }}>
+              <Text style={{ fontSize: 16, color: '#176d3b', marginRight: 8 }}>You got rewarded with</Text>
+              <Image source={require('../assets/gem.png')} style={{ width: 28, height: 28, marginRight: 4 }} />
+              <Text style={{ fontSize: 18, color: '#176d3b', fontWeight: 'bold' }}>{popupGemReward}</Text>
+            </View>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#4bbf7f',
+                borderRadius: 8,
+                paddingVertical: 12,
+                paddingHorizontal: 32,
+                marginTop: 8,
+              }}
+              onPress={() => setShowStagePopup(false)}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>Claim</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      )}
       <View style={[styles.balanceBarContainer, { top: 70 }]}>
         <View style={styles.balanceBar}>
           <Image source={require('../assets/coin.png')} style={styles.balanceIcon} />
