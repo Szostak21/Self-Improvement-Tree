@@ -119,7 +119,7 @@ export default function ShopScreen() {
             <View style={styles.itemBoxSmall}>
               <Text style={styles.itemText}>Calendar</Text>
               <Image source={require('../assets/items/calendar.png')} style={styles.itemImage} />
-              <Text style={styles.itemDescription}>Add 1 more good habit slot</Text>
+              <Text style={styles.itemDescription}>Increase the maximum number of good habits</Text>
             </View>
             <View style={styles.buyButtonContainer}>
               <TouchableOpacity
