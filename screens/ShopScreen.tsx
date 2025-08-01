@@ -1,21 +1,35 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, Button } from 'react-native';
+import { useUserData } from '../UserDataContext';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, Button, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type ShopScreenProps = {
-  setDecay?: (d: number) => void;
-  setExp?: (e: number) => void;
-  coins?: number;
-  gems?: number;
-  calendarBoughtCount?: number;
+// ...existing code...
+
+// TEST BUTTON: Simulate new day for daily reset
+const simulateNewDay = async (userData: any, setUserData: any) => {
+  try {
+    // Set lastOpenDate to yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yyyy = yesterday.getFullYear();
+    const mm = String(yesterday.getMonth() + 1).padStart(2, '0');
+    const dd = String(yesterday.getDate()).padStart(2, '0');
+    const yesterdayStr = `${yyyy}-${mm}-${dd}`;
+    const newUserData = { ...userData, lastOpenDate: yesterdayStr };
+    await AsyncStorage.setItem('userData', JSON.stringify(newUserData));
+    setUserData((prev: any) => ({ ...prev, lastOpenDate: yesterdayStr }));
+    Alert.alert('Test', 'lastOpenDate set to yesterday. Restart app to test daily reset.');
+  } catch (e) {
+    Alert.alert('Error', 'Failed to simulate new day.');
+  }
 };
 
-export default function ShopScreen({ setDecay, setExp, coins = 0, gems = 0 }: ShopScreenProps) {
-  // Destructure calendarBoughtCount from props
-  const { calendarBoughtCount = 0 } = arguments[0] || {};
-
-  // Confirmation modal state
+export default function ShopScreen() {
+  const { userData, setUserData } = useUserData();
   const [confirmVisible, setConfirmVisible] = React.useState(false);
   const [pendingItem, setPendingItem] = React.useState<{ name: string; cost: number } | null>(null);
+  const coins = userData.coins;
+  const gems = userData.gems;
 
   // Handler for Buy button
   const handleBuyPress = (name: string, cost: number) => {
@@ -23,21 +37,59 @@ export default function ShopScreen({ setDecay, setExp, coins = 0, gems = 0 }: Sh
     setConfirmVisible(true);
   };
 
-  // Handler for Confirm
-  const handleConfirmBuy = () => {
-    // TODO: Add buy logic here (e.g., deduct gems, call upgrade, etc.)
-    setConfirmVisible(false);
-    setPendingItem(null);
-  };
-
-  // Handler for Cancel
+  // Handler for Cancel in modal
   const handleCancelBuy = () => {
     setConfirmVisible(false);
     setPendingItem(null);
   };
 
+  // Handler for Confirm
+  const handleConfirmBuy = () => {
+    if (pendingItem) {
+      if (pendingItem.name === 'Calendar') {
+        const currentCount = userData.calendarBoughtCount || 0;
+        const calendarCost = 10 + 10 * currentCount;
+        if (gems >= calendarCost && currentCount < 5) {
+          setUserData(prev => ({
+            ...prev,
+            gems: prev.gems - calendarCost,
+            maxGoodHabits: (prev.maxGoodHabits ?? 1) + 1,
+            calendarBoughtCount: (prev.calendarBoughtCount ?? 0) + 1,
+          }));
+        }
+      } else if (pendingItem.name === 'Fertilizer') {
+        // Fertilizer: set decay to 0 and subtract gems
+        if (gems >= 5) {
+          setUserData(prev => ({
+            ...prev,
+            gems: prev.gems - 5,
+            decay: 0,
+          }));
+        }
+      }
+      // Możesz dodać logikę dla innych przedmiotów tutaj
+    }
+    setConfirmVisible(false);
+    setPendingItem(null);
+  };
+
+  // Calendar dynamic cost and limit
+  const calendarBoughtCount = userData.calendarBoughtCount ?? 0;
+  const maxGoodHabits = userData.maxGoodHabits ?? 1;
+  const calendarCost = 10 + 10 * calendarBoughtCount;
+  const calendarDisabled = calendarBoughtCount >= 5 || gems < calendarCost;
+
   return (
     <View style={styles.bg}>
+      {/* TEST BUTTON: Simulate new day for daily reset */}
+      <View style={{ width: '100%', alignItems: 'center', marginTop: 8 }}>
+        <TouchableOpacity
+          style={{ backgroundColor: '#e6b800', padding: 8, borderRadius: 8, marginBottom: 8 }}
+          onPress={() => simulateNewDay(userData, setUserData)}
+        >
+          <Text style={{ color: '#fff', fontWeight: 'bold' }}>Test: Simulate New Day (for daily reset)</Text>
+        </TouchableOpacity>
+      </View>
       {/* Top shop box */}
       <View style={styles.topBox}>
         <View style={styles.topBoxContent}>
@@ -62,25 +114,38 @@ export default function ShopScreen({ setDecay, setExp, coins = 0, gems = 0 }: Sh
           <Text style={styles.sectionLabelText}>Basic Items</Text>
         </View>
         <View style={styles.itemsGrid}>
+          {/* Example item: Calendar */}
           <View style={{alignItems: 'center', flex: 1}}>
             <View style={styles.itemBoxSmall}>
               <Text style={styles.itemText}>Calendar</Text>
               <Image source={require('../assets/items/calendar.png')} style={styles.itemImage} />
-              <Text style={styles.itemDescription}>Increase maximum number of habits</Text>
+              <Text style={styles.itemDescription}>Add 1 more good habit slot</Text>
             </View>
             <View style={styles.buyButtonContainer}>
-              <TouchableOpacity style={styles.buyButton} onPress={() => handleBuyPress('Calendar', 10)}>
+              <TouchableOpacity
+                style={[styles.buyButton, calendarDisabled && { backgroundColor: '#ccc' }]}
+                onPress={() => handleBuyPress('Calendar', calendarCost)}
+                disabled={calendarDisabled}
+              >
                 <View style={styles.buyButtonContentColumn}>
-                  <Text style={styles.buyButtonText}>Buy</Text>
-                  <View style={styles.buyButtonPriceRow}>
-                    <Image source={require('../assets/gem.png')} style={styles.priceIconInButton} />
-                    <Text style={styles.priceTextInButton}>10</Text>
-                  </View>
+                  {calendarBoughtCount >= 5 ? (
+                    <Text style={styles.buyButtonText}>Max</Text>
+                  ) : (
+                    <>
+                      <Text style={styles.buyButtonText}>Buy</Text>
+                      <View style={styles.buyButtonPriceRow}>
+                        <Image source={require('../assets/gem.png')} style={styles.priceIconInButton} />
+                        <Text style={styles.priceTextInButton}>{calendarCost}</Text>
+                      </View>
+                    </>
+                  )}
                 </View>
               </TouchableOpacity>
-              <Text style={styles.boughtLabel}>Bought {calendarBoughtCount}/5</Text>
+              {/* Not enough gems label removed as requested; button remains greyed out when disabled */}
+              <Text style={{ fontSize: 12, color: '#7c4d00', marginTop: 4 }}>{`Bought: ${calendarBoughtCount}/5`}</Text>
             </View>
           </View>
+          {/* Example item: Fertilizer */}
           <View style={{alignItems: 'center', flex: 1}}>
             <View style={styles.itemBoxSmall}>
               <Text style={styles.itemText}>Fertilizer</Text>
@@ -99,6 +164,7 @@ export default function ShopScreen({ setDecay, setExp, coins = 0, gems = 0 }: Sh
               </TouchableOpacity>
             </View>
           </View>
+          {/* Example item: Shovel */}
           <View style={{alignItems: 'center', flex: 1}}>
             <View style={styles.itemBoxSmall}>
               <Text style={styles.itemText}>Shovel</Text>
@@ -117,34 +183,34 @@ export default function ShopScreen({ setDecay, setExp, coins = 0, gems = 0 }: Sh
               </TouchableOpacity>
             </View>
           </View>
-      {/* Confirmation Modal */}
-      <Modal
-        visible={confirmVisible}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={handleCancelBuy}
-      >
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-          <View style={{ backgroundColor: '#fff', padding: 24, borderRadius: 16, width: '80%', alignItems: 'center' }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12, color: '#7c4d00', textAlign: 'center' }}>
-              Confirm Purchase
-            </Text>
-            {pendingItem && (
-              <>
-                <Text style={{ fontSize: 16, color: '#7c4d00', marginBottom: 8, textAlign: 'center' }}>
-                  Are you sure you want to buy <Text style={{ fontWeight: 'bold' }}>{pendingItem.name}</Text> for <Text style={{ fontWeight: 'bold' }}>{pendingItem.cost} <Text style={{ color: '#4bbf7f' }}>gems</Text></Text>?
-                </Text>
-              </>
-            )}
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 18 }}>
-              <Button title="Cancel" onPress={handleCancelBuy} color="#888" />
-              <View style={{ width: 12 }} />
-              <Button title="Confirm" onPress={handleConfirmBuy} color="#4bbf7f" />
+        </View>
+        {/* Confirmation Modal */}
+        <Modal
+          visible={confirmVisible}
+          animationType="fade"
+          transparent={true}
+          onRequestClose={handleCancelBuy}
+        >
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+            <View style={{ backgroundColor: '#fff', padding: 24, borderRadius: 16, width: '80%', alignItems: 'center' }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12, color: '#7c4d00', textAlign: 'center' }}>
+                Confirm Purchase
+              </Text>
+              {pendingItem && (
+                <>
+                  <Text style={{ fontSize: 16, color: '#7c4d00', marginBottom: 8, textAlign: 'center' }}>
+                    Are you sure you want to buy <Text style={{ fontWeight: 'bold' }}>{pendingItem.name}</Text> for <Text style={{ fontWeight: 'bold' }}>{pendingItem.cost} <Text style={{ color: '#4bbf7f' }}>gems</Text></Text>?
+                  </Text>
+                </>
+              )}
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 18 }}>
+                <Button title="Cancel" onPress={handleCancelBuy} color="#888" />
+                <View style={{ width: 12 }} />
+                <Button title="Confirm" onPress={handleConfirmBuy} color="#4bbf7f" />
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-        </View>
+        </Modal>
       </ScrollView>
       {/* You can add more shop content below */}
     </View>
@@ -252,7 +318,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     backgroundColor: '#fffbe6',
     borderRadius: 14,
-    marginTop: '22%',
+    marginTop: '12%',
     marginBottom: 8,
     paddingVertical: 10,
     shadowColor: '#000',

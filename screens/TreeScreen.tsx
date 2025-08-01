@@ -1,4 +1,7 @@
+// Nagrody za kolejne etapy drzewa (możesz dostosować wartości)
+const gemRewardsByStage = [0, 1, 2, 3, 4, 5, 6];
 import React, { useState } from 'react';
+import { useUserData } from '../UserDataContext';
 import { View, Text, Image, ImageBackground, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
 
 // Preload all tree graphics
@@ -12,31 +15,43 @@ const treeImages = {
   tree_7: require('../assets/tree/tree_7.png'),
 };
 
-export default function TreeScreen({
-  goodHabits = [],
-  badHabits = [],
-  coins = 100,
-  setCoins,
-  gems = 10,
-  setGems,
-  exp = 0,
-  setExp,
-  decay = 0,
-  setDecay,
-gemRewardsByStage = [0, 1, 1, 2, 2, 4, 10],
-}: {
-  goodHabits: { name: string; expLevel: number; goldLevel: number }[];
-  badHabits: { name: string; decayLevel: number; expLossLevel: number }[];
-  coins?: number;
-  setCoins?: (c: number) => void;
-  gems?: number;
-  setGems?: (g: number) => void;
-  exp?: number;
-  setExp?: (e: number) => void;
-  decay?: number;
-  setDecay?: (d: number) => void;
-  gemRewardsByStage?: number[];
-}) {
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export default function TreeScreen() {
+  const { userData, setUserData } = useUserData();
+  const goodHabits = userData.goodHabits;
+  const badHabits = userData.badHabits;
+  const coins = userData.coins;
+  const gems = userData.gems;
+  const exp = userData.exp;
+  const decay = userData.decay;
+  // Tree stages and exp requirements
+  const expStages = [40, 100, 160, 200, 300, 400, 0];
+  // Restore treeStage and expToLevel from userData if present, else default
+  const [treeStage, setTreeStage] = React.useState(userData.treeStage ?? 1);
+  const [expToLevel, setExpToLevel] = React.useState(userData.expToLevel ?? expStages[0]);
+
+  // When userData.treeStage or userData.expToLevel changes (e.g. after reload), update local state
+  React.useEffect(() => {
+    if (userData.treeStage && userData.treeStage !== treeStage) setTreeStage(userData.treeStage);
+    if (userData.expToLevel && userData.expToLevel !== expToLevel) setExpToLevel(userData.expToLevel);
+  }, [userData.treeStage, userData.expToLevel]);
+
+  // Save treeStage and expToLevel to userData and AsyncStorage whenever they change
+  React.useEffect(() => {
+    setUserData(prev => ({ ...prev, treeStage, expToLevel }));
+    AsyncStorage.getItem('userData').then(json => {
+      if (json) {
+        const data = JSON.parse(json);
+        AsyncStorage.setItem('userData', JSON.stringify({ ...data, treeStage, expToLevel }));
+      }
+    });
+  }, [treeStage, expToLevel, setUserData]);
+  // Replace setters with setUserData wrappers
+  const setCoins = (cb: any) => setUserData(prev => ({ ...prev, coins: typeof cb === 'function' ? cb(prev.coins) : cb }));
+  const setGems = (cb: any) => setUserData(prev => ({ ...prev, gems: typeof cb === 'function' ? cb(prev.gems) : cb }));
+  const setExp = (cb: any) => setUserData(prev => ({ ...prev, exp: typeof cb === 'function' ? cb(prev.exp) : cb }));
+  const setDecay = (cb: any) => setUserData(prev => ({ ...prev, decay: typeof cb === 'function' ? cb(prev.decay) : cb }));
   // Popup state for stage up
   const [showStagePopup, setShowStagePopup] = React.useState(false);
   const [popupStage, setPopupStage] = React.useState(1);
@@ -68,13 +83,9 @@ gemRewardsByStage = [0, 1, 1, 2, 2, 4, 10],
   // Upgrade costs for bad habits (0-5): 0:5, 1:20, 2:50, 3:200, 4:500, 5:1000
   const badUpgradeCosts = [5, 20, 50, 200, 500, 1000];
   const getBadUpgradeCost = (level: number) => badUpgradeCosts[Math.max(0, Math.min(level, 5))];
-  // Tree stages and exp requirements
-  const expStages = [40, 100, 160, 200, 300, 400, 0];
   // Use percentages for top position for responsive layout
   const treeStageTops = ['57%', '55%', '52%', '48%', '46%', '46%', '46%']; // % top for each stage
   const treeStageScales = [1, 1.2, 1.7, 2.4, 2.7, 2.7, 2.8]; // scale for each stage
-  const [treeStage, setTreeStage] = React.useState(1); // 1: tree_1, ..., 7: tree_7
-  const [expToLevel, setExpToLevel] = React.useState(expStages[0]);
   const treeStageTop = treeStageTops[treeStage - 1];
   // Convert percentage string to number for marginTop
   const treeStageMarginTop = parseInt(treeStageTop);
@@ -112,52 +123,52 @@ gemRewardsByStage = [0, 1, 1, 2, 2, 4, 10],
   // Gold gain by level: 0:10, 1:15, 2:20, 3:30, 4:50, 5:100
   const goldGainLevels = [10, 15, 20, 30, 50, 100];
   const handleCheckGoodHabit = (idx: number) => {
-    setCheckedGood(prev => prev.map((v, i) => i === idx ? !v : v));
-    if (!checkedGood[idx]) {
-      // Use expLevel and goldLevel for gain
-      const expLevel = goodHabits[idx]?.expLevel ?? 0;
-      const goldLevel = goodHabits[idx]?.goldLevel ?? 0;
-      // Clamp expLevel and goldLevel between 0 and 5
-      const expGain = expGainLevels[Math.max(0, Math.min(expLevel, 5))];
-      const coinGain = goldGainLevels[Math.max(0, Math.min(goldLevel, goldGainLevels.length - 1))];
-      let newExp = exp + expGain;
-      let currentStage = treeStage;
-      let currentExpToLevel = expToLevel;
-      let leftoverExp = newExp;
-      let leveledUp = false;
-      let leveledUpStage = treeStage;
-      let stagesLeveled = 0;
-      let totalGemReward = 0;
-      let lastStage = treeStage;
-      while (leftoverExp >= currentExpToLevel && currentStage < 7) {
-        leftoverExp -= currentExpToLevel;
-        currentStage += 1;
-        currentExpToLevel = expStages[currentStage - 1];
-        leveledUp = true;
-        leveledUpStage = currentStage;
-        stagesLeveled += 1;
-        // Add gem reward for each stage reached (use array, clamp index)
-        if (currentStage > 1 && currentStage <= 7) {
-          totalGemReward += gemRewardsByStage[Math.max(0, Math.min(currentStage - 1, gemRewardsByStage.length - 1))];
-          lastStage = currentStage;
-        }
+    // Only allow checking, not unchecking
+    if (checkedGood[idx]) return;
+    setCheckedGood(prev => prev.map((v, i) => i === idx ? true : v));
+    // Use expLevel and goldLevel for gain
+    const expLevel = goodHabits[idx]?.expLevel ?? 0;
+    const goldLevel = goodHabits[idx]?.goldLevel ?? 0;
+    // Clamp expLevel and goldLevel between 0 and 5
+    const expGain = expGainLevels[Math.max(0, Math.min(expLevel, 5))];
+    const coinGain = goldGainLevels[Math.max(0, Math.min(goldLevel, goldGainLevels.length - 1))];
+    let newExp = exp + expGain;
+    let currentStage = treeStage;
+    let currentExpToLevel = expToLevel;
+    let leftoverExp = newExp;
+    let leveledUp = false;
+    let leveledUpStage = treeStage;
+    let stagesLeveled = 0;
+    let totalGemReward = 0;
+    let lastStage = treeStage;
+    while (leftoverExp >= currentExpToLevel && currentStage < 7) {
+      leftoverExp -= currentExpToLevel;
+      currentStage += 1;
+      currentExpToLevel = expStages[currentStage - 1];
+      leveledUp = true;
+      leveledUpStage = currentStage;
+      stagesLeveled += 1;
+      // Add gem reward for each stage reached (use array, clamp index)
+      if (currentStage > 1 && currentStage <= 7) {
+        totalGemReward += gemRewardsByStage[Math.max(0, Math.min(currentStage - 1, gemRewardsByStage.length - 1))];
+        lastStage = currentStage;
       }
-      if (leveledUp) {
-        setTreeStage(currentStage);
-        if (setExp) setExp(leftoverExp);
-        setExpToLevel(currentExpToLevel);
-        // Show popup only for stages 2-7 (stage 1 is default, so show for 2-7)
-        if (lastStage > 1 && lastStage <= 7) {
-          setPopupStage(lastStage);
-          setPopupGemReward(totalGemReward);
-          setShowStagePopup(true);
-          if (setGems) setGems((gems ?? 0) + totalGemReward);
-        }
-      } else {
-        if (setExp) setExp(Math.min(leftoverExp, currentExpToLevel));
-      }
-      if (setCoins && typeof coins === 'number') setCoins(coins + coinGain);
     }
+    if (leveledUp) {
+      setTreeStage(currentStage);
+      if (setExp) setExp(leftoverExp);
+      setExpToLevel(currentExpToLevel);
+      // Show popup only for stages 2-7 (stage 1 is default, so show for 2-7)
+      if (lastStage > 1 && lastStage <= 7) {
+        setPopupStage(lastStage);
+        setPopupGemReward(totalGemReward);
+        setShowStagePopup(true);
+        if (setGems) setGems((gems ?? 0) + totalGemReward);
+      }
+    } else {
+      if (setExp) setExp(Math.min(leftoverExp, currentExpToLevel));
+    }
+    if (setCoins && typeof coins === 'number') setCoins(coins + coinGain);
   };
 
   const handleCheckBadHabit = (idx: number) => {
@@ -169,7 +180,7 @@ gemRewardsByStage = [0, 1, 1, 2, 2, 4, 10],
       const expLossLevel = badHabits[idx]?.expLossLevel ?? 0;
       const decayGain = getDecayGain(decayLevel);
       const expLoss = getExpLoss(expLossLevel);
-      if (setDecay) setDecay(Math.min(decay + decayGain, 100));
+      if (setDecay) setDecay(Math.min(decay + decayGain, 200));
       if (setExp) setExp(Math.max(exp - expLoss, 0));
     }
   };
@@ -290,7 +301,7 @@ gemRewardsByStage = [0, 1, 1, 2, 2, 4, 10],
             </View>
             <View style={{ width: 8 }} />
             <View style={[styles.progressBarBg, { width: '40%', height: 12, backgroundColor: '#eee', borderRadius: 6, marginVertical: 0 }]}> 
-              <View style={[styles.progressBar, { width: `${decay}%`, backgroundColor: '#ff0000', height: 12, borderRadius: 6 }]} />
+              <View style={[styles.progressBar, { width: `${Math.min((decay / 200) * 100, 100)}%`, backgroundColor: '#ff0000', height: 12, borderRadius: 6 }]} />
             </View>
             <View style={{ width: 64 + 38 + 24 }} />
           </View>

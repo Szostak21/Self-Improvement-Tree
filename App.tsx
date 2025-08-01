@@ -6,23 +6,59 @@ import HabitsScreen from './screens/HabitsScreen';
 import TreeScreen from './screens/TreeScreen';
 import AccountScreen from './screens/AccountScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
+import { UserDataProvider, useUserData } from './UserDataContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Asset } from 'expo-asset';
 import { View, ActivityIndicator } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 
+function AppContent() {
+  const { userData, setUserData } = useUserData();
+  // Daily reset logic
+  useEffect(() => {
+    (async () => {
+      try {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+        const json = await AsyncStorage.getItem('userData');
+        if (json) {
+          const data = JSON.parse(json);
+          if (data.lastOpenDate !== todayStr) {
+            // New day: reset isCompleted for all good habits
+            const resetGoodHabits = (data.goodHabits || []).map((habit: any) => ({ ...habit, isCompleted: false }));
+            setUserData((prev: any) => ({
+              ...prev,
+              goodHabits: resetGoodHabits,
+              lastOpenDate: todayStr,
+            }));
+            // Save to AsyncStorage as well
+            await AsyncStorage.setItem('userData', JSON.stringify({ ...data, goodHabits: resetGoodHabits, lastOpenDate: todayStr }));
+          }
+        }
+      } catch (e) { /* handle error */ }
+    })();
+  }, [setUserData]);
+
+  return (
+    <NavigationContainer>
+      <Tab.Navigator initialRouteName="Tree">
+        <Tab.Screen name="Shop" options={{ headerShown: false }} component={ShopScreen} />
+        <Tab.Screen name="Habits" options={{ headerShown: false }} component={HabitsScreen} />
+        <Tab.Screen name="Tree" options={{ headerShown: false }} component={TreeScreen} />
+        <Tab.Screen name="Account" component={AccountScreen} />
+        <Tab.Screen name="Settings" component={SettingsScreen} />
+      </Tab.Navigator>
+      <StatusBar style="auto" />
+    </NavigationContainer>
+  );
+}
+
 export default function App() {
-  const [goodHabits, setGoodHabits] = useState<
-    { name: string; expLevel: number; goldLevel: number }[]
-  >([]);
-  const [badHabits, setBadHabits] = useState<
-    { name: string; decayLevel: number; expLossLevel: number }[]
-  >([]);
-  const [coins, setCoins] = useState(50);
-  const [gems, setGems] = useState(10);
-  const [exp, setExp] = useState(0);
-  const [decay, setDecay] = useState(0);
   const [assetsLoaded, setAssetsLoaded] = useState(false);
 
   useEffect(() => {
@@ -57,51 +93,8 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <Tab.Navigator initialRouteName="Tree">
-        <Tab.Screen
-          name="Shop"
-          options={{ headerShown: false }}
-          children={() => <ShopScreen setDecay={setDecay} setExp={setExp} coins={coins} gems={gems} />}
-        />
-        <Tab.Screen
-          name="Habits"
-          options={{ headerShown: false }}
-        >
-          {() => (
-            <HabitsScreen
-              goodHabits={goodHabits}
-              setGoodHabits={setGoodHabits}
-              badHabits={badHabits}
-              setBadHabits={setBadHabits}
-              coins={coins}
-              setCoins={setCoins}
-            />
-          )}
-        </Tab.Screen>
-        <Tab.Screen
-          name="Tree"
-          options={{ headerShown: false }}
-        >
-          {() => (
-            <TreeScreen
-              goodHabits={goodHabits}
-              badHabits={badHabits}
-              coins={coins}
-              setCoins={setCoins}
-              gems={gems}
-              setGems={setGems}
-              exp={exp}
-              setExp={setExp}
-              decay={decay}
-              setDecay={setDecay}
-            />
-          )}
-        </Tab.Screen>
-        <Tab.Screen name="Account" component={AccountScreen} />
-        <Tab.Screen name="Settings" component={SettingsScreen} />
-      </Tab.Navigator>
-      <StatusBar style="auto" />
-    </NavigationContainer>
+    <UserDataProvider>
+      <AppContent />
+    </UserDataProvider>
   );
 }

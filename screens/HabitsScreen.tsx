@@ -1,4 +1,6 @@
+
 import React, { useState } from 'react';
+import { useUserData } from '../UserDataContext';
 import { View, Text, TouchableOpacity, Modal, TextInput, Button, StyleSheet, Image } from 'react-native';
 
 const UpgradeButton = ({ label = "Upgrade", cost = 10, maxed = false }) => (
@@ -25,23 +27,19 @@ const UpgradeButton = ({ label = "Upgrade", cost = 10, maxed = false }) => (
   </View>
 );
 
-export default function HabitsScreen({
-  goodHabits,
-  setGoodHabits,
-  badHabits,
-  setBadHabits,
-  coins,
-  setCoins,
-  upgradeMaxGoodHabits,
-}: {
-  goodHabits: { name: string; expLevel: number; goldLevel: number }[];
-  setGoodHabits: React.Dispatch<React.SetStateAction<{ name: string; expLevel: number; goldLevel: number }[]>>;
-  badHabits: { name: string; decayLevel: number; expLossLevel: number }[];
-  setBadHabits: React.Dispatch<React.SetStateAction<{ name: string; decayLevel: number; expLossLevel: number }[]>>;
-  coins: number;
-  setCoins: React.Dispatch<React.SetStateAction<number>>;
-  upgradeMaxGoodHabits?: React.RefObject<() => void>;
-}) {
+export default function HabitsScreen() {
+  const { userData, setUserData } = useUserData();
+  // Use maxGoodHabits from userData (context) so it updates when buying Calendar
+  const maxGoodHabits = userData.maxGoodHabits ?? 1;
+  const goodHabits = userData.goodHabits;
+  const badHabits = userData.badHabits;
+  const coins = userData.coins;
+  // Replace setGoodHabits, setBadHabits, setCoins with setUserData wrappers
+  const setGoodHabits = (cb: ((prev: typeof goodHabits) => typeof goodHabits) | typeof goodHabits) =>
+    setUserData(prev => ({ ...prev, goodHabits: typeof cb === 'function' ? (cb as (prev: typeof goodHabits) => typeof goodHabits)(prev.goodHabits) : cb }));
+  const setBadHabits = (cb: ((prev: typeof badHabits) => typeof badHabits) | typeof badHabits) =>
+    setUserData(prev => ({ ...prev, badHabits: typeof cb === 'function' ? (cb as (prev: typeof badHabits) => typeof badHabits)(prev.badHabits) : cb }));
+  const setCoins = (cb: any) => setUserData(prev => ({ ...prev, coins: typeof cb === 'function' ? cb(prev.coins) : cb }));
   // EXP gain by level: 0:10, 1:20, 2:30, 3:50, 4:100, 5:200
   // expLevel 0 (bar 0/5): 10, expLevel 1 (bar 1/5): 20, ..., expLevel 5 (bar 5/5): 200
   const expGainLevels = [10, 20, 30, 50, 100, 200];
@@ -136,9 +134,8 @@ export default function HabitsScreen({
     setEditGoldLevel(lvl => lvl + 1);
     setCoins(coins - cost);
   };
-  const [maxGoodHabits, setMaxGoodHabits] = useState(1);
+  // Use maxGoodHabits from userData (context) so it updates when buying Calendar
   const [limitModalVisible, setLimitModalVisible] = useState(false);
-
   const [badModalVisible, setBadModalVisible] = useState(false);
   const [newBadHabit, setNewBadHabit] = useState('');
   const [editBadModalVisible, setEditBadModalVisible] = useState(false);
@@ -147,17 +144,6 @@ export default function HabitsScreen({
   const [editDecayLevel, setEditDecayLevel] = useState(1);
   const [editExpLossLevel, setEditExpLossLevel] = useState(1);
   const [maxBadHabits, setMaxBadHabits] = useState(6);
-  // Function to upgrade maxGoodHabits (called from ShopScreen when calendar is bought)
-  const handleUpgradeMaxGoodHabits = () => {
-    setMaxGoodHabits(prev => Math.min(prev + 1, 6));
-  };
-
-  // If upgradeMaxGoodHabits prop is provided, assign the function
-  React.useEffect(() => {
-    if (upgradeMaxGoodHabits) {
-      upgradeMaxGoodHabits.current = handleUpgradeMaxGoodHabits;
-    }
-  }, [upgradeMaxGoodHabits]);
   const [badLimitModalVisible, setBadLimitModalVisible] = useState(false);
 
   // Good habits logic
