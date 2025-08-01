@@ -116,6 +116,12 @@ export default function TreeScreen() {
     }
   }, [badHabits]);
 
+  // Reset all checkedGood and checkedBad on new day (when userData.lastOpenDate changes)
+  React.useEffect(() => {
+    setCheckedGood(goodHabits.map(() => false));
+    setCheckedBad(badHabits.map(() => false));
+  }, [userData.lastOpenDate]);
+
   // Handler for checking a good habit
   // EXP gain by level: 0:10, 1:20, 2:30, 3:50, 4:100, 5:200
   // expLevel 0 (bar 0/5): 10, expLevel 1 (bar 1/5): 20, ..., expLevel 5 (bar 5/5): 200
@@ -172,17 +178,17 @@ export default function TreeScreen() {
   };
 
   const handleCheckBadHabit = (idx: number) => {
-    setCheckedBad(prev => prev.map((v, i) => i === idx ? !v : v));
-    if (!checkedBad[idx]) {
-      // Use decayLevel and expLossLevel for gain/loss
-      // decayLevel and expLossLevel are now 0-based (0-5)
-      const decayLevel = badHabits[idx]?.decayLevel ?? 0;
-      const expLossLevel = badHabits[idx]?.expLossLevel ?? 0;
-      const decayGain = getDecayGain(decayLevel);
-      const expLoss = getExpLoss(expLossLevel);
-      if (setDecay) setDecay(Math.min(decay + decayGain, 200));
-      if (setExp) setExp(Math.max(exp - expLoss, 0));
-    }
+    // Only allow checking, not unchecking
+    if (checkedBad[idx]) return;
+    setCheckedBad(prev => prev.map((v, i) => i === idx ? true : v));
+    // Use decayLevel and expLossLevel for gain/loss
+    // decayLevel and expLossLevel are now 0-based (0-5)
+    const decayLevel = badHabits[idx]?.decayLevel ?? 0;
+    const expLossLevel = badHabits[idx]?.expLossLevel ?? 0;
+    const decayGain = getDecayGain(decayLevel);
+    const expLoss = getExpLoss(expLossLevel);
+    if (setDecay) setDecay(Math.min(decay + decayGain, 200));
+    if (setExp) setExp(Math.max(exp - expLoss, 0));
   };
 
   return (
