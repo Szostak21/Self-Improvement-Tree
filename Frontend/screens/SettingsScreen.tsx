@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Button, Alert, TextInput, Modal } from 'react-native';
 import { useUserData } from '../UserDataContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 export default function SettingsScreen() {
@@ -34,8 +33,6 @@ export default function SettingsScreen() {
       const mm = String(yesterday.getMonth() + 1).padStart(2, '0');
       const dd = String(yesterday.getDate()).padStart(2, '0');
       const yesterdayStr = `${yyyy}-${mm}-${dd}`;
-      const newUserData = { ...userData, lastOpenDate: yesterdayStr };
-      await AsyncStorage.setItem('userData', JSON.stringify(newUserData));
       setUserData((prev) => ({ ...prev, lastOpenDate: yesterdayStr }));
       Alert.alert('Test', 'lastOpenDate set to yesterday. Restart app to test daily reset.');
     } catch (e) {
@@ -46,8 +43,6 @@ export default function SettingsScreen() {
   // Add 100 gems
   const addGems = async () => {
     const newGems = (userData?.gems || 0) + 100;
-    const newUserData = { ...userData, gems: newGems };
-    await AsyncStorage.setItem('userData', JSON.stringify(newUserData));
     setUserData((prev) => ({ ...prev, gems: newGems }));
     Alert.alert('Gems Added', '+100 gems');
   };
@@ -55,8 +50,6 @@ export default function SettingsScreen() {
   // Add 1000 coins
   const addCoins = async () => {
     const newCoins = (userData?.coins || 0) + 1000;
-    const newUserData = { ...userData, coins: newCoins };
-    await AsyncStorage.setItem('userData', JSON.stringify(newUserData));
     setUserData((prev) => ({ ...prev, coins: newCoins }));
     Alert.alert('Coins Added', '+1000 coins');
   };

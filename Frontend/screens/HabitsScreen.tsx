@@ -1,7 +1,13 @@
-
 import React, { useState } from 'react';
 import { useUserData } from '../UserDataContext';
 import { View, Text, TouchableOpacity, Modal, TextInput, Button, StyleSheet, Image } from 'react-native';
+
+// simple UUID v4 generator for stable habit ids
+const genId = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+  const r = (Math.random() * 16) | 0;
+  const v = c === 'x' ? r : (r & 0x3) | 0x8;
+  return v.toString(16);
+});
 
 const UpgradeButton = ({ label = "Upgrade", cost = 10, maxed = false }) => (
   <View style={{
@@ -151,7 +157,7 @@ export default function HabitsScreen() {
     if (newHabit.trim()) {
       setGoodHabits([
         ...goodHabits,
-        { name: newHabit.trim(), expLevel: 0, goldLevel: 0 },
+        { id: genId(), name: newHabit.trim(), expLevel: 0, goldLevel: 0 },
       ]);
       setNewHabit('');
       setModalVisible(false);
@@ -161,10 +167,11 @@ export default function HabitsScreen() {
     if (editHabitIdx !== null && editHabitText.trim()) {
       const updated = [...goodHabits];
       updated[editHabitIdx] = {
+        ...updated[editHabitIdx],
         name: editHabitText.trim(),
         expLevel: editExpLevel,
         goldLevel: editGoldLevel,
-      };
+      } as any;
       setGoodHabits(updated);
       setEditModalVisible(false);
     }
@@ -189,7 +196,7 @@ export default function HabitsScreen() {
     if (newBadHabit.trim()) {
       setBadHabits([
         ...badHabits,
-        { name: newBadHabit.trim(), decayLevel: 0, expLossLevel: 0 },
+        { id: genId(), name: newBadHabit.trim(), decayLevel: 0, expLossLevel: 0 },
       ]);
       setNewBadHabit('');
       setBadModalVisible(false);
@@ -199,10 +206,11 @@ export default function HabitsScreen() {
     if (editBadHabitIdx !== null && editBadHabitText.trim()) {
       const updated = [...badHabits];
       updated[editBadHabitIdx] = {
+        ...updated[editBadHabitIdx],
         name: editBadHabitText.trim(),
         decayLevel: editDecayLevel,
         expLossLevel: editExpLossLevel,
-      };
+      } as any;
       setBadHabits(updated);
       setEditBadModalVisible(false);
     }
@@ -398,10 +406,11 @@ export default function HabitsScreen() {
                     if (editBadHabitIdx !== null && editBadHabitText.trim()) {
                       const updated = [...badHabits];
                       updated[editBadHabitIdx] = {
+                        ...updated[editBadHabitIdx],
                         name: editBadHabitText.trim(),
                         decayLevel: editDecayLevel,
                         expLossLevel: editExpLossLevel,
-                      };
+                      } as any;
                       setBadHabits(updated);
                     }
                     setEditBadModalVisible(false);
@@ -600,10 +609,11 @@ export default function HabitsScreen() {
                     if (editHabitIdx !== null && editHabitText.trim()) {
                       const updated = [...goodHabits];
                       updated[editHabitIdx] = {
+                        ...updated[editHabitIdx],
                         name: editHabitText.trim(),
                         expLevel: editExpLevel,
                         goldLevel: editGoldLevel,
-                      };
+                      } as any;
                       setGoodHabits(updated);
                     }
                     setEditModalVisible(false);

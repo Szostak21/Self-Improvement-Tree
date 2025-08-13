@@ -15,8 +15,6 @@ const treeImages = {
   tree_7: require('../assets/tree/tree_7.png'),
 };
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 export default function TreeScreen() {
   const { userData, setUserData } = useUserData();
   const goodHabits = userData.goodHabits;
@@ -37,16 +35,11 @@ export default function TreeScreen() {
     if (userData.expToLevel && userData.expToLevel !== expToLevel) setExpToLevel(userData.expToLevel);
   }, [userData.treeStage, userData.expToLevel]);
 
-  // Save treeStage and expToLevel to userData and AsyncStorage whenever they change
+  // Save treeStage and expToLevel to userData whenever they change (Context will sync to backend)
   React.useEffect(() => {
     setUserData(prev => ({ ...prev, treeStage, expToLevel }));
-    AsyncStorage.getItem('userData').then(json => {
-      if (json) {
-        const data = JSON.parse(json);
-        AsyncStorage.setItem('userData', JSON.stringify({ ...data, treeStage, expToLevel }));
-      }
-    });
   }, [treeStage, expToLevel, setUserData]);
+
   // Replace setters with setUserData wrappers
   const setCoins = (cb: any) => setUserData(prev => ({ ...prev, coins: typeof cb === 'function' ? cb(prev.coins) : cb }));
   const setGems = (cb: any) => setUserData(prev => ({ ...prev, gems: typeof cb === 'function' ? cb(prev.gems) : cb }));
@@ -100,95 +93,109 @@ export default function TreeScreen() {
   const getExpLoss = (level: number) => expLossByLevel[Math.max(0, Math.min(level, 5))];
   // coins, setCoins, gems, setGems are now received as props
 
-  // Checkbox state for good and bad habits
-  const [checkedGood, setCheckedGood] = React.useState<boolean[]>(goodHabits.map(() => false));
-  const [checkedBad, setCheckedBad] = React.useState<boolean[]>(badHabits.map(() => false));
+  // Helper to build stable keys for daily checks (prefer stable id)
+  const habitKeyById = (idx: number, type: 'good' | 'bad') => {
+    const id = type === 'good' ? (goodHabits[idx] as any)?.id : (badHabits[idx] as any)?.id;
+    return id ? `${type}:id:${id}` : `${type}:idx:${idx}`;
+  };
+  // Legacy key (pre-ids): name+index
+  const habitLegacyKey = (name: string, idx: number, type: 'good' | 'bad') => `${type}:${idx}:${name}`;
 
-  // Only update checkedGood/checkedBad if habits are added or removed (not upgraded)
-  React.useEffect(() => {
-    if (goodHabits.length !== checkedGood.length) {
-      setCheckedGood(goodHabits.map(() => false));
-    }
-  }, [goodHabits]);
-  React.useEffect(() => {
-    if (badHabits.length !== checkedBad.length) {
-      setCheckedBad(badHabits.map(() => false));
-    }
-  }, [badHabits]);
-
-  // Reset all checkedGood and checkedBad on new day (when userData.lastOpenDate changes)
-  React.useEffect(() => {
-    setCheckedGood(goodHabits.map(() => false));
-    setCheckedBad(badHabits.map(() => false));
-  }, [userData.lastOpenDate]);
+  // Derive checked flags from persistent maps in userData (support legacy keys)
+  const checkedGood = goodHabits.map((h, idx) => {
+    const map = userData.checkedGoodToday || {};
+    const k1 = habitKeyById(idx, 'good');
+    const k2 = habitLegacyKey(h.name, idx, 'good');
+    return !!(map[k1] || map[k2]);
+  });
+  const checkedBad = badHabits.map((h, idx) => {
+    const map = userData.checkedBadToday || {};
+    const k1 = habitKeyById(idx, 'bad');
+    const k2 = habitLegacyKey(h.name, idx, 'bad');
+    return !!(map[k1] || map[k2]);
+  });
 
   // Handler for checking a good habit
   // EXP gain by level: 0:10, 1:20, 2:30, 3:50, 4:100, 5:200
   // expLevel 0 (bar 0/5): 10, expLevel 1 (bar 1/5): 20, ..., expLevel 5 (bar 5/5): 200
-  const expGainLevels = [10, 20, 30, 50, 100, 200];
   // Gold gain by level: 0:10, 1:15, 2:20, 3:30, 4:50, 5:100
+  const expGainLevels = [10, 20, 30, 50, 100, 200];
   const goldGainLevels = [10, 15, 20, 30, 50, 100];
   const handleCheckGoodHabit = (idx: number) => {
-    // Only allow checking, not unchecking
-    if (checkedGood[idx]) return;
-    setCheckedGood(prev => prev.map((v, i) => i === idx ? true : v));
+    const key = habitKeyById(idx, 'good');
+    // Only allow checking once per day
+    if (userData.checkedGoodToday && userData.checkedGoodToday[key]) return;
+
     // Use expLevel and goldLevel for gain
     const expLevel = goodHabits[idx]?.expLevel ?? 0;
     const goldLevel = goodHabits[idx]?.goldLevel ?? 0;
     // Clamp expLevel and goldLevel between 0 and 5
     const expGain = expGainLevels[Math.max(0, Math.min(expLevel, 5))];
     const coinGain = goldGainLevels[Math.max(0, Math.min(goldLevel, goldGainLevels.length - 1))];
+
     let newExp = exp + expGain;
     let currentStage = treeStage;
     let currentExpToLevel = expToLevel;
     let leftoverExp = newExp;
     let leveledUp = false;
-    let leveledUpStage = treeStage;
-    let stagesLeveled = 0;
-    let totalGemReward = 0;
     let lastStage = treeStage;
+    let totalGemReward = 0;
     while (leftoverExp >= currentExpToLevel && currentStage < 7) {
       leftoverExp -= currentExpToLevel;
       currentStage += 1;
       currentExpToLevel = expStages[currentStage - 1];
       leveledUp = true;
-      leveledUpStage = currentStage;
-      stagesLeveled += 1;
-      // Add gem reward for each stage reached (use array, clamp index)
       if (currentStage > 1 && currentStage <= 7) {
         totalGemReward += gemRewardsByStage[Math.max(0, Math.min(currentStage - 1, gemRewardsByStage.length - 1))];
         lastStage = currentStage;
       }
     }
+
+    // Prepare resulting resources
+    let finalExp = leveledUp ? leftoverExp : Math.min(leftoverExp, currentExpToLevel);
+    let finalCoins = (typeof coins === 'number' ? coins : 0) + coinGain;
+    let finalGems = (typeof gems === 'number' ? gems : 0) + (leveledUp ? totalGemReward : 0);
+
+    // Update persistent map and resources in one state update
+    setUserData(prev => ({
+      ...prev,
+      coins: finalCoins,
+      gems: finalGems,
+      exp: finalExp,
+      checkedGoodToday: { ...(prev.checkedGoodToday || {}), [key]: true },
+    }));
+
     if (leveledUp) {
       setTreeStage(currentStage);
-      if (setExp) setExp(leftoverExp);
       setExpToLevel(currentExpToLevel);
-      // Show popup only for stages 2-7 (stage 1 is default, so show for 2-7)
       if (lastStage > 1 && lastStage <= 7) {
         setPopupStage(lastStage);
         setPopupGemReward(totalGemReward);
         setShowStagePopup(true);
-        if (setGems) setGems((gems ?? 0) + totalGemReward);
       }
-    } else {
-      if (setExp) setExp(Math.min(leftoverExp, currentExpToLevel));
     }
-    if (setCoins && typeof coins === 'number') setCoins(coins + coinGain);
   };
 
   const handleCheckBadHabit = (idx: number) => {
-    // Only allow checking, not unchecking
-    if (checkedBad[idx]) return;
-    setCheckedBad(prev => prev.map((v, i) => i === idx ? true : v));
+    const key = habitKeyById(idx, 'bad');
+    // Only allow checking once per day
+    if (userData.checkedBadToday && userData.checkedBadToday[key]) return;
+
     // Use decayLevel and expLossLevel for gain/loss
-    // decayLevel and expLossLevel are now 0-based (0-5)
     const decayLevel = badHabits[idx]?.decayLevel ?? 0;
     const expLossLevel = badHabits[idx]?.expLossLevel ?? 0;
     const decayGain = getDecayGain(decayLevel);
     const expLoss = getExpLoss(expLossLevel);
-    if (setDecay) setDecay(Math.min(decay + decayGain, 200));
-    if (setExp) setExp(Math.max(exp - expLoss, 0));
+
+    const finalDecay = Math.min(decay + decayGain, 200);
+    const finalExp = Math.max(exp - expLoss, 0);
+
+    setUserData(prev => ({
+      ...prev,
+      decay: finalDecay,
+      exp: finalExp,
+      checkedBadToday: { ...(prev.checkedBadToday || {}), [key]: true },
+    }));
   };
 
   return (

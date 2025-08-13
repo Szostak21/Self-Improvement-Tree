@@ -6,9 +6,8 @@ import HabitsScreen from './screens/HabitsScreen';
 import TreeScreen from './screens/TreeScreen';
 import AccountScreen from './screens/AccountScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { UserDataProvider, useUserData } from './UserDataContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Asset } from 'expo-asset';
 import { View, ActivityIndicator } from 'react-native';
 
@@ -18,31 +17,20 @@ function AppContent() {
   const { userData, setUserData } = useUserData();
   // Daily reset logic
   useEffect(() => {
-    (async () => {
-      try {
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        const todayStr = `${yyyy}-${mm}-${dd}`;
-        const json = await AsyncStorage.getItem('userData');
-        if (json) {
-          const data = JSON.parse(json);
-          if (data.lastOpenDate !== todayStr) {
-            // New day: reset isCompleted for all good habits
-            const resetGoodHabits = (data.goodHabits || []).map((habit: any) => ({ ...habit, isCompleted: false }));
-            setUserData((prev: any) => ({
-              ...prev,
-              goodHabits: resetGoodHabits,
-              lastOpenDate: todayStr,
-            }));
-            // Save to AsyncStorage as well
-            await AsyncStorage.setItem('userData', JSON.stringify({ ...data, goodHabits: resetGoodHabits, lastOpenDate: todayStr }));
-          }
-        }
-      } catch (e) { /* handle error */ }
-    })();
-  }, [setUserData]);
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+    if (userData.lastOpenDate !== todayStr) {
+      const resetGoodHabits = (userData.goodHabits || []).map((habit: any) => ({ ...habit, isCompleted: false }));
+      setUserData((prev: any) => ({
+        ...prev,
+        goodHabits: resetGoodHabits,
+        lastOpenDate: todayStr,
+      }));
+    }
+  }, [userData.lastOpenDate]);
 
   return (
     <NavigationContainer>
