@@ -35,3 +35,25 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Java / Spring / Maven
+**/target/
+**/.classpath
+**/.project
+**/.settings/
+**/.idea/
+**/*.iml
+
+# H2 / DB files
+Backend/data/
+Backend/data/*.mv.db
+Backend/data/*.trace.db
+
+# Logs
+logs/
+*.log
+**/spring.log
+
+# OS/Editor
+Thumbs.db
+.vscode/
