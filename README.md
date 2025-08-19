@@ -4,14 +4,6 @@ A gamified habit app that grows a beautiful tree as you build daily routines. Of
 
 ---
 
-## Demo 🎬
-
-<p align="center">
-  <img src="docs/media/registration_and_email_verification.gif" alt="Registration + Email Verification" width="640" />
-</p>
-
----
-
 ## Gallery 📸
 
 <p align="center">
@@ -42,6 +34,18 @@ A gamified habit app that grows a beautiful tree as you build daily routines. Of
 
 - Backend: configure DB/SMTP in `application.properties`, run Spring Boot
 - Frontend: set API in `Frontend/config.ts`, then `npm install` and `npx expo start`
+
+---
+
+## Data & Auth Flow 🔐
+
+- Data model is stored locally (AsyncStorage) and mirrored on the backend per identity (guest ID or account ID)
+- Merge policy: when logging in, account server data overrides local/guest; if the account is new, guest progress is promoted
+- Registration: `register-init` sends an email code → `register-verify` completes the account; password reset via `reset-init`/`reset-confirm`
+
+<p align="center">
+  <img src="docs/media/registration_and_email_verification.gif" alt="Registration + Email Verification" width="640" />
+</p>
 
 ---
 
