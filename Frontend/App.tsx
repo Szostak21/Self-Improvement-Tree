@@ -10,11 +10,15 @@ import { useState, useEffect } from 'react';
 import { UserDataProvider, useUserData } from './UserDataContext';
 import { Asset } from 'expo-asset';
 import { View, ActivityIndicator } from 'react-native';
+import { AuthProvider } from './AuthContext';
+import StartScreen from './screens/StartScreen';
 
 const Tab = createBottomTabNavigator();
 
 function AppContent() {
   const { userData, setUserData } = useUserData();
+  const [showStart, setShowStart] = useState(true);
+
   // Daily reset logic
   useEffect(() => {
     const today = new Date();
@@ -31,6 +35,16 @@ function AppContent() {
       }));
     }
   }, [userData.lastOpenDate]);
+
+  if (showStart) {
+    return (
+      <StartScreen
+        onStart={() => {
+          setShowStart(false);
+        }}
+      />
+    );
+  }
 
   return (
     <NavigationContainer>
@@ -81,8 +95,10 @@ export default function App() {
   }
 
   return (
-    <UserDataProvider>
-      <AppContent />
-    </UserDataProvider>
+    <AuthProvider>
+      <UserDataProvider>
+        <AppContent />
+      </UserDataProvider>
+    </AuthProvider>
   );
 }

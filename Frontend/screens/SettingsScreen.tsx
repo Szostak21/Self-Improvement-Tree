@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Button, Alert, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, Button, Alert, TextInput, Modal, DevSettings } from 'react-native';
 import { useUserData } from '../UserDataContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 export default function SettingsScreen() {
@@ -21,6 +22,23 @@ export default function SettingsScreen() {
       Alert.alert('Developer Options', 'Access granted!');
     } else {
       Alert.alert('Incorrect Password', 'The password you entered is incorrect.');
+    }
+  };
+
+  // Clear all local app data (AsyncStorage) and reset in-memory state
+  const clearLocalData = async () => {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const importantKeys = ['userData', 'authToken', 'accountId', 'username', 'sut_user_id', 'sut_guest_user_id'];
+      const toRemove = keys.filter(k => k.startsWith('userData:') || importantKeys.includes(k));
+      if (toRemove.length) {
+        await AsyncStorage.multiRemove(toRemove);
+      }
+      // Do NOT modify in-memory state to avoid triggering sync; reload instead
+      Alert.alert('Local data cleared', 'The app will reload.');
+      DevSettings.reload();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to clear local data.');
     }
   };
 
@@ -59,8 +77,12 @@ export default function SettingsScreen() {
       <View style={{ marginTop: 32 }}>
         <Button title="Developer Options" color="#888" onPress={handleDevOptions} />
       </View>
+
       {devUnlocked && (
         <>
+          <View style={{ marginTop: 24 }}>
+            <Button title="Clear Local Data" color="#d32f2f" onPress={clearLocalData} />
+          </View>
           <View style={{ marginTop: 24 }}>
             <Button title="Test: Simulate New Day (for daily reset)" color="#e6b800" onPress={simulateNewDay} />
           </View>
@@ -71,6 +93,7 @@ export default function SettingsScreen() {
           </View>
         </>
       )}
+
       <Modal
         visible={modalVisible}
         transparent
@@ -124,8 +147,8 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 6,
     padding: 8,
-    width: 180,
-    marginBottom: 4,
+    width: 220,
+    marginBottom: 8,
     backgroundColor: '#f9f9f9',
   },
 });

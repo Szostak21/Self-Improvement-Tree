@@ -1,9 +1,6 @@
 import React from 'react';
 import { useUserData } from '../UserDataContext';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, Button, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// ...existing code...
 
 // TEST BUTTON: Simulate new day for daily reset
 const simulateNewDay = async (userData: any, setUserData: any) => {
@@ -15,8 +12,7 @@ const simulateNewDay = async (userData: any, setUserData: any) => {
     const mm = String(yesterday.getMonth() + 1).padStart(2, '0');
     const dd = String(yesterday.getDate()).padStart(2, '0');
     const yesterdayStr = `${yyyy}-${mm}-${dd}`;
-    const newUserData = { ...userData, lastOpenDate: yesterdayStr };
-    await AsyncStorage.setItem('userData', JSON.stringify(newUserData));
+    // Just update state; the context will persist it per current identity
     setUserData((prev: any) => ({ ...prev, lastOpenDate: yesterdayStr }));
     Alert.alert('Test', 'lastOpenDate set to yesterday. Restart app to test daily reset.');
   } catch (e) {
@@ -27,13 +23,13 @@ const simulateNewDay = async (userData: any, setUserData: any) => {
 export default function ShopScreen() {
   const { userData, setUserData } = useUserData();
   const [confirmVisible, setConfirmVisible] = React.useState(false);
-  const [pendingItem, setPendingItem] = React.useState<{ name: string; cost: number } | null>(null);
-  const coins = userData.coins;
-  const gems = userData.gems;
+  const [pendingItem, setPendingItem] = React.useState<{ name: string; cost: number; currency: 'gems' | 'coins' } | null>(null);
+  const coins = userData.coins || 0;
+  const gems = userData.gems || 0;
 
   // Handler for Buy button
-  const handleBuyPress = (name: string, cost: number) => {
-    setPendingItem({ name, cost });
+  const handleBuyPress = (name: string, cost: number, currency: 'gems' | 'coins' = 'gems') => {
+    setPendingItem({ name, cost, currency });
     setConfirmVisible(true);
   };
 
@@ -66,6 +62,42 @@ export default function ShopScreen() {
             decay: 0,
           }));
         }
+      } else if (pendingItem.name === '100 coins') {
+        // Buy 100 coins for 1 gem
+        if (gems >= 1) {
+          setUserData(prev => ({
+            ...prev,
+            gems: prev.gems - 1,
+            coins: (prev.coins || 0) + 100,
+          }));
+        }
+      } else if (pendingItem.name === '1500 coins') {
+        // Buy 1500 coins for 10 gems
+        if (gems >= 10) {
+          setUserData(prev => ({
+            ...prev,
+            gems: prev.gems - 10,
+            coins: (prev.coins || 0) + 1500,
+          }));
+        }
+      } else if (pendingItem.name === '1 gem') {
+        // Buy 1 gem for 100 coins
+        if (coins >= 100) {
+          setUserData((prev: any) => ({
+            ...prev,
+            coins: (prev.coins || 0) - 100,
+            gems: (prev.gems || 0) + 1,
+          }));
+        }
+      } else if (pendingItem.name === '10 gems') {
+        // Buy 10 gems for 1500 coins
+        if (coins >= 1500) {
+          setUserData((prev: any) => ({
+            ...prev,
+            coins: (prev.coins || 0) - 1500,
+            gems: (prev.gems || 0) + 10,
+          }));
+        }
       }
       // Możesz dodać logikę dla innych przedmiotów tutaj
     }
@@ -78,6 +110,54 @@ export default function ShopScreen() {
   const maxGoodHabits = userData.maxGoodHabits ?? 1;
   const calendarCost = 10 + 10 * calendarBoughtCount;
   const calendarDisabled = calendarBoughtCount >= 5 || gems < calendarCost;
+  // Coins pack (100 coins) cost in gems
+  const coinPackCost = 1;
+  const coinPackDisabled = gems < coinPackCost;
+  // Mega coins pack (1500 coins) cost in gems
+  const coinMegaPackCost = 10;
+  const coinMegaPackDisabled = gems < coinMegaPackCost;
+  // Gems packs (buy gems using coins)
+  const gemPackCostCoins = 100;
+  const gemPackDisabled = coins < gemPackCostCoins;
+  const gemMegaPackCostCoins = 1500;
+  const gemMegaPackDisabled = coins < gemMegaPackCostCoins;
+  
+  // Daily Coins claim state
+  const getTodayStr = () => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+  const todayStr = getTodayStr();
+  const lastDailyClaim = (userData as any).dailyCoinsLastClaimDate;
+  const dailyCoinsClaimedToday = lastDailyClaim === todayStr;
+  const handleClaimDailyCoins = () => {
+    if (dailyCoinsClaimedToday) {
+      Alert.alert('Already claimed', 'Come back tomorrow!');
+      return;
+    }
+    setUserData((prev: any) => ({
+      ...prev,
+      coins: (prev.coins || 0) + 100,
+      dailyCoinsLastClaimDate: todayStr,
+    }));
+  };
+  // Daily Gems claim state
+  const lastDailyGemsClaim = (userData as any).dailyGemsLastClaimDate;
+  const dailyGemsClaimedToday = lastDailyGemsClaim === todayStr;
+  const handleClaimDailyGems = () => {
+    if (dailyGemsClaimedToday) {
+      Alert.alert('Already claimed', 'Come back tomorrow!');
+      return;
+    }
+    setUserData((prev: any) => ({
+      ...prev,
+      gems: (prev.gems || 0) + 1,
+      dailyGemsLastClaimDate: todayStr,
+    }));
+  };
 
   return (
     <View style={styles.bg}>
@@ -117,9 +197,9 @@ export default function ShopScreen() {
           {/* Example item: Calendar */}
           <View style={{alignItems: 'center', flex: 1}}>
             <View style={styles.itemBoxSmall}>
-              <Text style={styles.itemText}>Calendar</Text>
+              <Text style={[styles.itemText, { flexWrap: 'wrap', width: '90%', maxWidth: 100 }]}>Calendar</Text>
               <Image source={require('../assets/items/calendar.png')} style={styles.itemImage} />
-              <Text style={styles.itemDescription}>Add one good habit slot</Text>
+              <Text style={[styles.itemDescription, { flexWrap: 'wrap', width: '90%', maxWidth: 100 }]}>Add one good habit slot</Text>
             </View>
             <View style={styles.buyButtonContainer}>
               <TouchableOpacity
@@ -129,10 +209,10 @@ export default function ShopScreen() {
               >
                 <View style={styles.buyButtonContentColumn}>
                   {calendarBoughtCount >= 5 ? (
-                    <Text style={styles.buyButtonText}>Max</Text>
+                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Max</Text>
                   ) : (
                     <>
-                      <Text style={styles.buyButtonText}>Buy</Text>
+                      <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Buy</Text>
                       <View style={styles.buyButtonPriceRow}>
                         <Image source={require('../assets/gem.png')} style={styles.priceIconInButton} />
                         <Text style={styles.priceTextInButton}>{calendarCost}</Text>
@@ -155,7 +235,7 @@ export default function ShopScreen() {
             <View style={styles.buyButtonContainer}>
               <TouchableOpacity style={styles.buyButton} onPress={() => handleBuyPress('Fertilizer', 5)}>
                 <View style={styles.buyButtonContentColumn}>
-                  <Text style={styles.buyButtonText}>Buy</Text>
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Buy</Text>
                   <View style={styles.buyButtonPriceRow}>
                     <Image source={require('../assets/gem.png')} style={styles.priceIconInButton} />
                     <Text style={styles.priceTextInButton}>5</Text>
@@ -174,10 +254,170 @@ export default function ShopScreen() {
             <View style={styles.buyButtonContainer}>
               <TouchableOpacity style={styles.buyButton} onPress={() => handleBuyPress('Shovel', 5)}>
                 <View style={styles.buyButtonContentColumn}>
-                  <Text style={styles.buyButtonText}>Buy</Text>
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Buy</Text>
                   <View style={styles.buyButtonPriceRow}>
                     <Image source={require('../assets/gem.png')} style={styles.priceIconInButton} />
                     <Text style={styles.priceTextInButton}>5</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+        {/* New label below the three boxes */}
+        <View style={[styles.sectionLabelBox, { marginTop: 0 }]}>
+           <Text style={styles.sectionLabelText}>Coins</Text>
+         </View>
+        {/* Coins section boxes - identical layout to the three boxes on top */}
+        <View style={styles.itemsGrid}>
+          {/* Daily Coins (first box in this row) */}
+          <View style={{alignItems: 'center', flex: 1}}>
+            <View style={styles.itemBoxSmall}>
+              <Text style={[styles.itemText, { flexWrap: 'wrap', width: '90%', maxWidth: 100 }]}>Daily Coins</Text>
+              <Image source={require('../assets/coin.png')} style={styles.itemImage} />
+              <Text style={[styles.itemDescription, { flexWrap: 'wrap', width: '90%', maxWidth: 100 }]}>Claim 100 coins every day!</Text>
+            </View>
+            <View style={styles.buyButtonContainer}>
+              <TouchableOpacity
+                style={[styles.buyButton, dailyCoinsClaimedToday && { backgroundColor: '#ccc' }]}
+                onPress={handleClaimDailyCoins}
+                disabled={dailyCoinsClaimedToday}
+              >
+                <View style={styles.buyButtonContentColumn}>
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>{dailyCoinsClaimedToday ? 'Claimed' : 'Free'}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {/* 100 coins pack (second box) */}
+          <View style={{alignItems: 'center', flex: 1}}>
+            <View style={styles.itemBoxSmall}>
+              <Text style={[styles.itemText, { flexWrap: 'wrap', width: '90%', maxWidth: 100 }]}>100 coins</Text>
+              <Image source={require('../assets/coin.png')} style={styles.itemImage} />
+              <Text style={[styles.itemDescription, { flexWrap: 'wrap', width: '90%', maxWidth: 100 }]}>A small pile of 100 coins</Text>
+            </View>
+            <View style={styles.buyButtonContainer}>
+              <TouchableOpacity
+                style={[styles.buyButton, coinPackDisabled && { backgroundColor: '#ccc' }]}
+                onPress={() => handleBuyPress('100 coins', coinPackCost)}
+                disabled={coinPackDisabled}
+              >
+                <View style={styles.buyButtonContentColumn}>
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Buy</Text>
+                  <View style={styles.buyButtonPriceRow}>
+                    <Image source={require('../assets/gem.png')} style={styles.priceIconInButton} />
+                    <Text style={styles.priceTextInButton}>{coinPackCost}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {/* Example item: Shovel */}
+          <View style={{alignItems: 'center', flex: 1}}>
+            <View style={styles.itemBoxSmall}>
+              <Text style={styles.itemText}>1500 coins</Text>
+              {/* Stacked coin icons */}
+              <View style={{ width: 72, height: 48, position: 'relative', marginBottom: 6 }}>
+                <Image source={require('../assets/coin.png')} style={{ position: 'absolute', width: 36, height: 36, left: 28, top: 0 }} />
+                <Image source={require('../assets/coin.png')} style={{ position: 'absolute', width: 36, height: 36, left: 14, top: 6 }} />
+                <Image source={require('../assets/coin.png')} style={{ position: 'absolute', width: 36, height: 36, left: 0, top: 12 }} />
+              </View>
+              <Text style={styles.itemDescription}>A big pile of 1500 coins</Text>
+            </View>
+            <View style={styles.buyButtonContainer}>
+              <TouchableOpacity
+                style={[styles.buyButton, coinMegaPackDisabled && { backgroundColor: '#ccc' }]}
+                onPress={() => handleBuyPress('1500 coins', coinMegaPackCost)}
+                disabled={coinMegaPackDisabled}
+              >
+                <View style={styles.buyButtonContentColumn}>
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Buy</Text>
+                  <View style={styles.buyButtonPriceRow}>
+                    <Image source={require('../assets/gem.png')} style={styles.priceIconInButton} />
+                    <Text style={styles.priceTextInButton}>{coinMegaPackCost}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+        {/* Gems label and section */}
+        <View style={[styles.sectionLabelBox, { marginTop: 0 }]}>
+           <Text style={styles.sectionLabelText}>Gems</Text>
+        </View>
+        <View style={styles.itemsGrid}>
+          {/* Daily Gems (first box in this row) */}
+          <View style={{alignItems: 'center', flex: 1}}>
+            <View style={styles.itemBoxSmall}>
+              <Text style={[styles.itemText, { flexWrap: 'wrap', width: '90%', maxWidth: 100 }]}>Daily Gems</Text>
+              <Image source={require('../assets/gem.png')} style={styles.itemImage} />
+              <Text style={[styles.itemDescription, { flexWrap: 'wrap', width: '90%', maxWidth: 100 }]}>Claim 1 gem every day!</Text>
+            </View>
+            <View style={styles.buyButtonContainer}>
+              <TouchableOpacity
+                style={[styles.buyButton, dailyGemsClaimedToday && { backgroundColor: '#ccc' }]}
+                onPress={handleClaimDailyGems}
+                disabled={dailyGemsClaimedToday}
+              >
+                <View style={styles.buyButtonContentColumn}>
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>{dailyGemsClaimedToday ? 'Claimed' : 'Free'}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {/* 20 Gems IAP placeholder (second box) */}
+          <View style={{alignItems: 'center', flex: 1}}>
+            <View style={styles.itemBoxSmall}>
+              <Text style={[styles.itemText, { flexWrap: 'wrap', width: '90%', maxWidth: 100 }]}>20 Gems</Text>
+              {/* Stacked gem icons (3) */}
+              <View style={{ width: 72, height: 48, position: 'relative', marginBottom: 6 }}>
+                <Image source={require('../assets/gem.png')} style={{ position: 'absolute', width: 36, height: 36, left: 28, top: 0 }} />
+                <Image source={require('../assets/gem.png')} style={{ position: 'absolute', width: 36, height: 36, left: 14, top: 6 }} />
+                <Image source={require('../assets/gem.png')} style={{ position: 'absolute', width: 36, height: 36, left: 0, top: 12 }} />
+              </View>
+              <Text style={[styles.itemDescription, { flexWrap: 'wrap', width: '90%', maxWidth: 100 }]}>A bundle of 20 gems!</Text>
+            </View>
+            <View style={styles.buyButtonContainer}>
+              <TouchableOpacity
+                style={styles.buyButton}
+                onPress={() => handleBuyPress('20 Gems', 0.99)}
+              >
+                <View style={styles.buyButtonContentColumn}>
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Buy</Text>
+                  <View style={styles.buyButtonPriceRow}>
+                    <Text style={styles.priceTextInButton}>0.99$</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {/* 100 gems IAP (third box) */}
+          <View style={{alignItems: 'center', flex: 1}}>
+            <View style={styles.itemBoxSmall}>
+              <Text style={[styles.itemText, { flexWrap: 'wrap', width: '90%', maxWidth: 100, lineHeight: 18, marginBottom: 0 }]}>100 gems</Text>
+              {/* Stacked gem icons (2 rows: 3 on top, 4 on bottom), tighter overlap and adjusted alignment */}
+              <View style={{ width: 74, height: 56, position: 'relative', marginTop: -2, marginBottom: 0 }}>
+                {/* Top row (3 overlapped) - shifted slightly right */}
+                <Image source={require('../assets/gem.png')} style={{ position: 'absolute', width: 22, height: 22, left: 34, top: 6 }} />
+                <Image source={require('../assets/gem.png')} style={{ position: 'absolute', width: 22, height: 22, left: 22, top: 10 }} />
+                <Image source={require('../assets/gem.png')} style={{ position: 'absolute', width: 22, height: 22, left: 12, top: 14 }} />
+                {/* Bottom row (4 overlapped) - moved right and up for more overlap */}
+                <Image source={require('../assets/gem.png')} style={{ position: 'absolute', width: 22, height: 22, left: 42, top: 16 }} />
+                <Image source={require('../assets/gem.png')} style={{ position: 'absolute', width: 22, height: 22, left: 30, top: 20 }} />
+                <Image source={require('../assets/gem.png')} style={{ position: 'absolute', width: 22, height: 22, left: 20, top: 24 }} />
+                <Image source={require('../assets/gem.png')} style={{ position: 'absolute', width: 22, height: 22, left: 10, top: 28 }} />
+              </View>
+              <Text style={[styles.itemDescription, { flexWrap: 'wrap', width: '90%', maxWidth: 100, marginTop: 0, lineHeight: 13 }]}>A big bundle of 100 gems</Text>
+            </View>
+            <View style={styles.buyButtonContainer}>
+              <TouchableOpacity
+                style={styles.buyButton}
+                onPress={() => handleBuyPress('100 gems', 1.99)}
+              >
+                <View style={styles.buyButtonContentColumn}>
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Buy</Text>
+                  <View style={styles.buyButtonPriceRow}>
+                    <Text style={styles.priceTextInButton}>1.99$</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -197,11 +437,17 @@ export default function ShopScreen() {
                 Confirm Purchase
               </Text>
               {pendingItem && (
-                <>
+                pendingItem.name === 'Shovel' || pendingItem.name === '20 Gems' || pendingItem.name === '100 gems' ? (
                   <Text style={{ fontSize: 16, color: '#7c4d00', marginBottom: 8, textAlign: 'center' }}>
-                    Are you sure you want to buy <Text style={{ fontWeight: 'bold' }}>{pendingItem.name}</Text> for <Text style={{ fontWeight: 'bold' }}>{pendingItem.cost} <Text style={{ color: '#4bbf7f' }}>gems</Text></Text>?
+                    Coming Soon!
                   </Text>
-                </>
+                ) : (
+                  <>
+                    <Text style={{ fontSize: 16, color: '#7c4d00', marginBottom: 8, textAlign: 'center' }}>
+                      Are you sure you want to buy <Text style={{ fontWeight: 'bold' }}>{pendingItem.name}</Text> for <Text style={{ fontWeight: 'bold' }}>{pendingItem.cost} {pendingItem.currency}</Text>?
+                    </Text>
+                  </>
+                )
               )}
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 18 }}>
                 <Button title="Cancel" onPress={handleCancelBuy} color="#888" />
@@ -223,6 +469,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
+    minHeight: 40,
   },
   buyButtonPriceRow: {
     flexDirection: 'row',
@@ -274,7 +521,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#7c4d00',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 2,
     marginBottom: 0,
   },
   buyButtonsRow: {
@@ -309,8 +556,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     width: '90%',
     alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 32,
+    marginTop: 0,
+    marginBottom: 6,
     gap: 12,
   },
   sectionLabelBox: {
@@ -319,7 +566,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fffbe6',
     borderRadius: 14,
     marginTop: '12%',
-    marginBottom: 8,
+    marginBottom: 16,
     paddingVertical: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -462,7 +709,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   itemText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#7c4d00',
     textAlign: 'center',
@@ -482,10 +729,8 @@ const styles = StyleSheet.create({
     maxWidth: 110,
     alignSelf: 'center',
   },
-  buyButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+  buyButtonFullWidth: {
+    width: 110,
   },
   boughtLabel: {
     color: '#7c4d00',

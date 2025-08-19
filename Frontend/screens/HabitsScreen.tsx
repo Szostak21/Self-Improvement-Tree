@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useUserData } from '../UserDataContext';
-import { View, Text, TouchableOpacity, Modal, TextInput, Button, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, TextInput, Button, StyleSheet, Image, Alert } from 'react-native';
 
 // simple UUID v4 generator for stable habit ids
 const genId = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -154,27 +154,35 @@ export default function HabitsScreen() {
 
   // Good habits logic
   const handleAddHabit = () => {
-    if (newHabit.trim()) {
+    const name = newHabit.trim();
+    if (name && name.length <= 25) {
       setGoodHabits([
         ...goodHabits,
-        { id: genId(), name: newHabit.trim(), expLevel: 0, goldLevel: 0 },
+        { id: genId(), name, expLevel: 0, goldLevel: 0 },
       ]);
       setNewHabit('');
       setModalVisible(false);
+    } else if (name.length > 25) {
+      Alert.alert('Too long', 'Habit name must be 25 characters or fewer.');
     }
   };
   const handleEditHabit = () => {
-    if (editHabitIdx !== null && editHabitText.trim()) {
-      const updated = [...goodHabits];
-      updated[editHabitIdx] = {
-        ...updated[editHabitIdx],
-        name: editHabitText.trim(),
-        expLevel: editExpLevel,
-        goldLevel: editGoldLevel,
-      } as any;
-      setGoodHabits(updated);
-      setEditModalVisible(false);
+    if (editHabitIdx === null) return;
+    const name = editHabitText.trim();
+    if (!name) return;
+    if (name.length > 25) {
+      Alert.alert('Too long', 'Habit name must be 25 characters or fewer.');
+      return;
     }
+    const updated = [...goodHabits];
+    updated[editHabitIdx] = {
+      ...updated[editHabitIdx],
+      name,
+      expLevel: editExpLevel,
+      goldLevel: editGoldLevel,
+    } as any;
+    setGoodHabits(updated);
+    setEditModalVisible(false);
   };
   const handleDeleteHabit = () => {
     if (editHabitIdx !== null) {
@@ -193,13 +201,16 @@ export default function HabitsScreen() {
 
   // Bad habits logic
   const handleAddBadHabit = () => {
-    if (newBadHabit.trim()) {
+    const name = newBadHabit.trim();
+    if (name && name.length <= 25) {
       setBadHabits([
         ...badHabits,
-        { id: genId(), name: newBadHabit.trim(), decayLevel: 0, expLossLevel: 0 },
+        { id: genId(), name, decayLevel: 0, expLossLevel: 0 },
       ]);
       setNewBadHabit('');
       setBadModalVisible(false);
+    } else if (name.length > 25) {
+      Alert.alert('Too long', 'Habit name must be 25 characters or fewer.');
     }
   };
   const handleEditBadHabit = () => {
@@ -310,6 +321,7 @@ export default function HabitsScreen() {
                 placeholder="Habit name"
                 style={{ borderWidth: 1, borderColor: '#4b2e19', borderRadius: 8, padding: 8, marginBottom: 16 }}
                 autoFocus
+                maxLength={25}
               />
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
                 <Button title="Cancel" onPress={() => setBadModalVisible(false)} color="#888" />
@@ -345,6 +357,7 @@ export default function HabitsScreen() {
                 placeholder="Habit name"
                 style={{ borderWidth: 1, borderColor: '#4b2e19', borderRadius: 8, padding: 8, marginBottom: 16 }}
                 autoFocus={false}
+                maxLength={25}
               />
               {/* Decay row */}
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, justifyContent: 'space-between' }}>
@@ -403,11 +416,20 @@ export default function HabitsScreen() {
                 <Button
                   title="Exit"
                   onPress={() => {
-                    if (editBadHabitIdx !== null && editBadHabitText.trim()) {
+                    if (editBadHabitIdx !== null) {
+                      const name = editBadHabitText.trim();
+                      if (!name) {
+                        setEditBadModalVisible(false);
+                        return;
+                      }
+                      if (name.length > 25) {
+                        Alert.alert('Too long', 'Habit name must be 25 characters or fewer.');
+                        return;
+                      }
                       const updated = [...badHabits];
                       updated[editBadHabitIdx] = {
                         ...updated[editBadHabitIdx],
-                        name: editBadHabitText.trim(),
+                        name,
                         decayLevel: editDecayLevel,
                         expLossLevel: editExpLossLevel,
                       } as any;
@@ -506,6 +528,7 @@ export default function HabitsScreen() {
                 placeholder="Habit name"
                 style={{ borderWidth: 1, borderColor: '#176d3b', borderRadius: 8, padding: 8, marginBottom: 16 }}
                 autoFocus
+                maxLength={25}
               />
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
                 <Button title="Cancel" onPress={() => setModalVisible(false)} color="#888" />
@@ -542,6 +565,7 @@ export default function HabitsScreen() {
                 placeholder="Habit name"
                 style={{ borderWidth: 1, borderColor: '#176d3b', borderRadius: 8, padding: 8, marginBottom: 16 }}
                 autoFocus={false} // Change from autoFocus to false
+                maxLength={25}
               />
               {/* EXP gain row */}
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, justifyContent: 'space-between' }}>
@@ -606,11 +630,20 @@ export default function HabitsScreen() {
                 <Button
                   title="Exit"
                   onPress={() => {
-                    if (editHabitIdx !== null && editHabitText.trim()) {
+                    if (editHabitIdx !== null) {
+                      const name = editHabitText.trim();
+                      if (!name) {
+                        setEditModalVisible(false);
+                        return;
+                      }
+                      if (name.length > 25) {
+                        Alert.alert('Too long', 'Habit name must be 25 characters or fewer.');
+                        return;
+                      }
                       const updated = [...goodHabits];
                       updated[editHabitIdx] = {
                         ...updated[editHabitIdx],
-                        name: editHabitText.trim(),
+                        name,
                         expLevel: editExpLevel,
                         goldLevel: editGoldLevel,
                       } as any;

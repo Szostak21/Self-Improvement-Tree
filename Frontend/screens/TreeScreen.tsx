@@ -2,7 +2,7 @@
 const gemRewardsByStage = [0, 1, 2, 3, 4, 5, 6];
 import React, { useState } from 'react';
 import { useUserData } from '../UserDataContext';
-import { View, Text, Image, ImageBackground, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, Image, ImageBackground, StyleSheet, ScrollView, TouchableOpacity, Animated, useWindowDimensions } from 'react-native';
 
 // Preload all tree graphics
 const treeImages = {
@@ -77,12 +77,28 @@ export default function TreeScreen() {
   const badUpgradeCosts = [5, 20, 50, 200, 500, 1000];
   const getBadUpgradeCost = (level: number) => badUpgradeCosts[Math.max(0, Math.min(level, 5))];
   // Use percentages for top position for responsive layout
-  const treeStageTops = ['57%', '55%', '52%', '48%', '46%', '46%', '46%']; // % top for each stage
+  // const treeStageTops = ['57%', '55%', '52%', '48%', '46%', '46%', '46%']; // deprecated
   const treeStageScales = [1, 1.2, 1.7, 2.4, 2.7, 2.7, 2.8]; // scale for each stage
-  const treeStageTop = treeStageTops[treeStage - 1];
-  // Convert percentage string to number for marginTop
-  const treeStageMarginTop = parseInt(treeStageTop);
   const treeStageScale = treeStageScales[treeStage - 1];
+  const BASE_TREE_SIZE = 83; // px
+  const treeW = BASE_TREE_SIZE * treeStageScale;
+  const treeH = BASE_TREE_SIZE * treeStageScale;
+
+  // Fix background aspect ratio so it doesn't crop differently on devices
+  const { width: winW } = useWindowDimensions();
+  const bgSrc = require('../assets/tree_background.png');
+  const bgMeta = Image.resolveAssetSource(bgSrc);
+  const bgRatio = bgMeta && bgMeta.width && bgMeta.height ? bgMeta.width / bgMeta.height : 1.6; // fallback ratio
+  const bgWidth = winW;
+  const bgHeight = bgWidth / bgRatio;
+
+  // Anchor the tree by bottom offset so its base sits on the hill consistently
+  // Increased baseline and compensate for possible transparent padding at bottom of tree assets
+  const treeBottomPerc = [21, 20.4, 17, 12.5, 10, 10, 8.7];
+  const baseOffsetPercOfTree = [0.26, 0.28, 0.30, 0.32, 0.34, 0.34, 0.34];
+  const stageIdx = Math.max(0, Math.min(treeStage - 1, treeBottomPerc.length - 1));
+  const fineTuneUpPerc = 0.05; // +3% of bg height upwards
+  const bottomPx = bgHeight * ((treeBottomPerc[stageIdx] / 100) + fineTuneUpPerc) + treeH * baseOffsetPercOfTree[stageIdx];
 
   // New decay gain scaling by level (0-5): 0:20, 1:16, 2:12, 3:8, 4:4, 5:2
   const decayGainByLevel = [20, 16, 12, 8, 4, 2];
@@ -265,20 +281,14 @@ export default function TreeScreen() {
           <Text style={styles.balanceText}>{gems}</Text>
         </View>
       </View>
-      {/* Top 70%: Tree background */}
-      <View style={{flex: 7}}>
-        <ImageBackground source={require('../assets/tree_background.png')} style={styles.treeBg}>
-          {/* Tree image in the middle of the screen, centered horizontally, with independent position for each stage */}
-          {/* Tree image in the middle of the screen, centered horizontally, with independent position for each stage */}
-          <View style={{ position: 'absolute', top: 0, left: '50%', transform: [{ translateX: -41.5 }], zIndex: 2, marginTop: `${treeStageMarginTop}%` }}>
+      {/* Top: Tree background with fixed aspect ratio */}
+      <View style={{ height: bgHeight }}>
+        <ImageBackground source={bgSrc} style={{ width: bgWidth, height: bgHeight, alignSelf: 'center' }} resizeMode="contain">
+          {/* Centered tree anchored to bottom baseline */}
+          <View style={{ position: 'absolute', left: 0, right: 0, bottom: bottomPx, alignItems: 'center', zIndex: 2 }}>
             <Image
               source={(treeImages as any)[`tree_${treeStage}`]}
-              style={{
-                width: 83,
-                height: 83,
-                resizeMode: 'contain',
-                transform: [{ scale: treeStageScale }],
-              }}
+              style={{ width: treeW, height: treeH, resizeMode: 'contain' }}
             />
           </View>
           <View style={styles.screen}>
@@ -331,7 +341,7 @@ export default function TreeScreen() {
                 )}
                 {badHabits.map((habit, idx) => (
                   <View key={idx} style={styles.habitBoxBad}>
-                    <Text style={styles.habitTextBad}>{habit.name}</Text>
+                    <Text style={styles.habitTextBad}>{(habit.name ?? '').slice(0, 25)}</Text>
                     <TouchableOpacity
                       style={styles.checkbox}
                       onPress={() => handleCheckBadHabit(idx)}
@@ -358,7 +368,7 @@ export default function TreeScreen() {
                 )}
                 {goodHabits.map((habit, idx) => (
                   <View key={idx} style={styles.habitBoxGood}>
-                    <Text style={styles.habitTextGood}>{habit.name}</Text>
+                    <Text style={styles.habitTextGood}>{(habit.name ?? '').slice(0, 25)}</Text>
                     <TouchableOpacity
                       style={styles.checkbox}
                       onPress={() => handleCheckGoodHabit(idx)}
@@ -484,6 +494,9 @@ const styles = StyleSheet.create({
     color: '#b71c1c',
     fontWeight: 'bold',
     flex: 1,
+    flexWrap: 'wrap',
+    fontSize: 14,
+    minWidth: 0,
   },
   habitBoxGood: {
     backgroundColor: '#e6fff6',
@@ -499,6 +512,9 @@ const styles = StyleSheet.create({
     color: '#176d3b',
     fontWeight: 'bold',
     flex: 1,
+    flexWrap: 'wrap',
+    fontSize: 14,
+    minWidth: 0,
   },
   checkbox: {
     marginLeft: 12,
