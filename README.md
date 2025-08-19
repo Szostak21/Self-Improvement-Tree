@@ -46,7 +46,7 @@ A gamified habit app that grows a beautiful tree as you build daily routines. Of
 - Registration: `register-init` sends an email code → `register-verify` completes the account; password reset via `reset-init`/`reset-confirm`
 
 <p align="center">
-  <img src="docs/media/registration_and_email_verification.gif" alt="Registration + Email Verification" width="480" />
+  <img src="docs/media/registration_and_email_verification.gif" alt="Registration + Email Verification" width="360" />
 </p>
 
 ---
