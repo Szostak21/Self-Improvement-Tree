@@ -20,6 +20,7 @@ A gamified habit app that grows a beautiful tree as you build daily routines. Of
 - Account‑first merge: on login, server account data wins; new accounts adopt guest progress
 - Secure auth: JWT, email verification, and password reset via code (optional username change)
 - Play loop: track habits, grow the tree, claim daily rewards, buy upgrades (coins/gems)
+- Guest mode: run the app without a backend; account login, email, and cloud sync require the server
 
 ---
 
@@ -34,6 +35,7 @@ A gamified habit app that grows a beautiful tree as you build daily routines. Of
 
 - Backend: configure DB/SMTP in `application.properties`, run Spring Boot
 - Frontend: set API in `Frontend/config.ts`, then `npm install` and `npx expo start`
+- Full guide: see [docs/SETUP.md](docs/SETUP.md)
 
 ---
 
@@ -44,11 +46,11 @@ A gamified habit app that grows a beautiful tree as you build daily routines. Of
 - Registration: `register-init` sends an email code → `register-verify` completes the account; password reset via `reset-init`/`reset-confirm`
 
 <p align="center">
-  <img src="docs/media/registration_and_email_verification.gif" alt="Registration + Email Verification" width="640" />
+  <img src="docs/media/registration_and_email_verification.gif" alt="Registration + Email Verification" width="480" />
 </p>
 
 ---
 
 ## License 📝
 
-MIT
+MIT — see [LICENSE](LICENSE)
