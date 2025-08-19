@@ -1,50 +1,50 @@
-# Self‑Improvement Tree
+# Self‑Improvement Tree 🌱
 
-A gamified habit app that grows a beautiful tree as you build daily routines. Offline‑first mobile app (React Native + Expo) with a secure Spring Boot backend.
-
----
-
-## Demo
-
-![Registration + Email Verification](docs/media/registration_and_email_verification.gif)
-
-Screenshots
-
-![Habits Screen](docs/media/habits_screen.png)
-![Shop](docs/media/shop_screen.png)
-![Tree](docs/media/tree_screen.png)
+A gamified habit app that grows a beautiful tree as you build daily routines. Offline‑first mobile app (React Native + Expo) + Spring Boot backend.
 
 ---
 
-## Highlights
+## Demo 🎬
 
-- Offline‑first: play as Guest, then log in — your progress links seamlessly
-- Account‑first merge: on login, server account data overrides local; new accounts adopt guest progress
-- Secure auth: JWT, email verification, and password reset via code (with optional username change)
-- Habit tracking that levels up your tree; daily rewards and upgrades in the shop (coins/gems)
-- Clean, mobile‑first UI built with Expo
+<p align="center">
+  <img src="docs/media/registration_and_email_verification.gif" alt="Registration + Email Verification" width="640" />
+</p>
 
 ---
 
-## Tech
+## Gallery 📸
+
+<p align="center">
+  <img src="docs/media/habits_screen.png" alt="Habits Screen" width="280" />
+  <img src="docs/media/shop_screen.png" alt="Shop" width="280" />
+  <img src="docs/media/tree_screen.png" alt="Tree" width="280" />
+</p>
+
+---
+
+## Highlights ✨
+
+- Offline‑first: start as Guest, then log in — progress links seamlessly
+- Account‑first merge: on login, server account data wins; new accounts adopt guest progress
+- Secure auth: JWT, email verification, and password reset via code (optional username change)
+- Play loop: track habits, grow the tree, claim daily rewards, buy upgrades (coins/gems)
+
+---
+
+## Tech 🛠
 
 - Mobile: React Native (Expo), Context API, AsyncStorage
-- Backend: Spring Boot, JWT, JavaMailSender, JPA (PostgreSQL or H2)
+- Backend: Spring Boot, JWT, JavaMailSender, JPA (PostgreSQL/H2)
 
 ---
 
-## Run locally
+## Run locally ▶️
 
-Backend
-- Configure DB + SMTP in `application.properties` (or stub email for demos)
-- Run the Spring Boot app
-
-Frontend
-- Set API base in `Frontend/config.ts`
-- Install deps and start Expo: `npm install` → `npx expo start`
+- Backend: configure DB/SMTP in `application.properties`, run Spring Boot
+- Frontend: set API in `Frontend/config.ts`, then `npm install` and `npx expo start`
 
 ---
 
-## License
+## License 📝
 
 MIT
