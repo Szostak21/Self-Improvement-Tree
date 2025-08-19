@@ -4,12 +4,10 @@ A gamified habit app that grows a beautiful tree as you build daily routines. Of
 
 ---
 
-## Gallery 📸
+## Demo 🎬
 
 <p align="center">
-  <img src="docs/media/habits_screen.png" alt="Habits Screen" width="280" />
-  <img src="docs/media/shop_screen.png" alt="Shop" width="280" />
-  <img src="docs/media/tree_screen.png" alt="Tree" width="280" />
+  <img src="docs/media/demo.gif" alt="App Demo" width="480" />
 </p>
 
 ---
@@ -46,7 +44,17 @@ A gamified habit app that grows a beautiful tree as you build daily routines. Of
 - Registration: `register-init` sends an email code → `register-verify` completes the account; password reset via `reset-init`/`reset-confirm`
 
 <p align="center">
-  <img src="docs/media/registration_and_email_verification.gif" alt="Registration + Email Verification" width="360" />
+  <img src="docs/media/registration_and_email_verification.gif" alt="Registration + Email Verification" width="320" />
+</p>
+
+---
+
+## Screenshots 📸
+
+<p align="center">
+  <img src="docs/media/habits_screen.png" alt="Habits Screen" width="260" />
+  <img src="docs/media/shop_screen.png" alt="Shop" width="260" />
+  <img src="docs/media/tree_screen.png" alt="Tree" width="260" />
 </p>
 
 ---
