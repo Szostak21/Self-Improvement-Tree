@@ -7,7 +7,7 @@ A gamified habit app that grows a beautiful tree as you build daily routines. Of
 ## Demo 🎬
 
 <p align="center">
-  <img src="docs/media/demo.gif" alt="App Demo" width="480" />
+  <img src="docs/media/demo.gif" alt="App Demo" width="320" />
 </p>
 
 ---
