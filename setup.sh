@@ -9,23 +9,43 @@ echo ""
 
 # Check if .env exists
 if [ ! -f ".env" ]; then
-    echo "📝 Creating .env file from template..."
+    echo "📝 Creating root .env file from template..."
     if [ -f ".env.example" ]; then
         cp .env.example .env
-        echo "✅ .env file created!"
-        echo "⚠️  Please edit .env and add your credentials:"
-        echo "   - Gmail email and app password"
-        echo "   - Stripe API keys (from dashboard.stripe.com)"
-        echo ""
-        echo "Press Enter when ready..."
-        read
+        echo "✅ Root .env file created!"
     else
         echo "❌ .env.example not found!"
         exit 1
     fi
 else
-    echo "✅ .env file already exists"
+    echo "✅ Root .env file already exists"
 fi
+
+# Check if Frontend/.env exists
+if [ ! -f "Frontend/.env" ]; then
+    echo "📝 Creating Frontend/.env file from template..."
+    if [ -f "Frontend/.env.example" ]; then
+        cp Frontend/.env.example Frontend/.env
+        echo "✅ Frontend/.env file created!"
+    else
+        echo "❌ Frontend/.env.example not found!"
+        exit 1
+    fi
+else
+    echo "✅ Frontend/.env file already exists"
+fi
+
+echo "⚠️  Please edit both .env files and add your credentials:"
+echo "   Root .env:"
+echo "   - Gmail email and app password (for registration/password reset)"
+echo "   - Stripe secret key (backend - from dashboard.stripe.com/test/apikeys)"
+echo "   - Stripe webhook secret (from Stripe CLI)"
+echo "   "
+echo "   Frontend/.env:"
+echo "   - Stripe publishable key (frontend - from dashboard.stripe.com/test/apikeys)"
+echo ""
+echo "Press Enter when ready..."
+read
 
 # Check Java
 echo ""

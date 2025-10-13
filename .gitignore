@@ -68,3 +68,4 @@ Thumbs.db
 .env
 .env*.local
 Backend/.env
+Frontend/.env

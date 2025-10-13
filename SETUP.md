@@ -37,16 +37,25 @@ cd Self-Improvement-Tree
 
 ### 2. Configure Environment
 
-Create a `.env` file in the project root:
+Create environment files from templates:
 
 ```bash
+# Root .env (backend configuration)
 cp .env.example .env
-# Edit .env with your actual Gmail and Stripe credentials
+
+# Frontend .env (Expo configuration)  
+cp Frontend/.env.example Frontend/.env
+
+# Edit both files with your actual credentials
 ```
+
+**Required Credentials:**
+- **Root .env**: Gmail app password, Stripe secret key, webhook secret
+- **Frontend/.env**: Stripe publishable key
 
 **Note:** For Gmail App Password, enable 2FA on your Google account, then generate an app password at: https://myaccount.google.com/apppasswords
 
-**Security Note:** The `run-backend.sh` script is now tracked in git since it no longer contains hardcoded secrets. It loads all sensitive data from your `.env` file.
+**Security Note:** Environment files are gitignored to prevent accidental commits of sensitive data.
 
 ### 3. Start the App
 
@@ -122,11 +131,15 @@ More test cards: https://stripe.com/docs/testing
 ```
 Self-Improvement-Tree/
 ├── Backend/              # Spring Boot API
+│   ├── .env.example      # Backend environment template
 │   └── src/main/java/    # Java source code
 ├── Frontend/             # React Native (Expo) app
+│   ├── .env.example      # Frontend environment template
 │   ├── screens/          # App screens
 │   └── config.ts         # API configuration
-├── .env                  # Environment variables (create this)
+├── .env.example          # Root environment template
+├── .env                  # Backend environment variables (create this)
+├── Frontend/.env         # Frontend environment variables (create this)
 ├── run-backend.sh        # Start backend script
 └── run-frontend.sh       # Start frontend script
 ```

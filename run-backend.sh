@@ -13,9 +13,9 @@ fi
 export GMAIL_USER="${GMAIL_USER}"
 export GMAIL_APP_PASSWORD="${GMAIL_APP_PASSWORD}"
 
-# Stripe configuration
+# Stripe configuration (backend only needs secret key and webhook secret)
 export STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY}"
-export STRIPE_PUBLISHABLE_KEY="${STRIPE_PUBLISHABLE_KEY}"
+export STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET}"
 
 ./auto-config-api.sh
 
