@@ -10,12 +10,12 @@ if [ -f ".env" ]; then
 fi
 
 # Email configuration
-export GMAIL_USER="${GMAIL_USER:-your_gmail_address@gmail.com}"
-export GMAIL_APP_PASSWORD="${GMAIL_APP_PASSWORD:-your_app_password_here}"
+export GMAIL_USER="${GMAIL_USER}"
+export GMAIL_APP_PASSWORD="${GMAIL_APP_PASSWORD}"
 
 # Stripe configuration
-export STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-sk_test_YOUR_STRIPE_SECRET_KEY}"
-export STRIPE_PUBLISHABLE_KEY="${STRIPE_PUBLISHABLE_KEY:-pk_test_YOUR_STRIPE_PUBLISHABLE_KEY}"
+export STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY}"
+export STRIPE_PUBLISHABLE_KEY="${STRIPE_PUBLISHABLE_KEY}"
 
 ./auto-config-api.sh
 

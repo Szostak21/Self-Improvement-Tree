@@ -12,6 +12,8 @@ import { Asset } from 'expo-asset';
 import { View, ActivityIndicator } from 'react-native';
 import { AuthProvider } from './AuthContext';
 import StartScreen from './screens/StartScreen';
+import { StripeProvider } from '@stripe/stripe-react-native';
+import { STRIPE_PUBLISHABLE_KEY } from './config';
 
 const Tab = createBottomTabNavigator();
 
@@ -97,7 +99,9 @@ export default function App() {
   return (
     <AuthProvider>
       <UserDataProvider>
-        <AppContent />
+        <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
+          <AppContent />
+        </StripeProvider>
       </UserDataProvider>
     </AuthProvider>
   );

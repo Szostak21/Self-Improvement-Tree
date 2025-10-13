@@ -91,6 +91,13 @@
 			<version>${jjwt.version}</version>
 			<scope>runtime</scope>
 		</dependency>
+
+		<!-- Stripe -->
+		<dependency>
+			<groupId>com.stripe</groupId>
+			<artifactId>stripe-java</artifactId>
+			<version>27.1.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>

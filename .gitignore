@@ -36,6 +36,9 @@ yarn-error.*
 .env.development
 .env.production
 
+# But track the example
+!.env.example
+
 # typescript
 *.tsbuildinfo
 
@@ -61,5 +64,7 @@ logs/
 Thumbs.db
 .vscode/
 
-# Scripts with secrets
-run-backend.sh
+# Environment variables (use .env.example as template)
+.env
+.env*.local
+Backend/.env

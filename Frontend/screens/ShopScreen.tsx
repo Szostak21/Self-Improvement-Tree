@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useUserData } from '../UserDataContext';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, Button, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, Button, Alert, ActivityIndicator } from 'react-native';
+import { CardField, useConfirmPayment } from '@stripe/stripe-react-native';
+import { API_BASE } from '../config';
 
 // TEST BUTTON: Simulate new day for daily reset
 const simulateNewDay = async (userData: any, setUserData: any) => {
@@ -23,14 +25,27 @@ const simulateNewDay = async (userData: any, setUserData: any) => {
 export default function ShopScreen() {
   const { userData, setUserData } = useUserData();
   const [confirmVisible, setConfirmVisible] = React.useState(false);
-  const [pendingItem, setPendingItem] = React.useState<{ name: string; cost: number; currency: 'gems' | 'coins' } | null>(null);
+  const [pendingItem, setPendingItem] = React.useState<{ name: string; cost: number; currency: 'gems' | 'coins' | 'usd'; gemsAmount?: number } | null>(null);
   const coins = userData.coins || 0;
   const gems = userData.gems || 0;
 
+  // Stripe payment state
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [cardComplete, setCardComplete] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const { confirmPayment } = useConfirmPayment();
+
   // Handler for Buy button
-  const handleBuyPress = (name: string, cost: number, currency: 'gems' | 'coins' = 'gems') => {
-    setPendingItem({ name, cost, currency });
-    setConfirmVisible(true);
+  const handleBuyPress = (name: string, cost: number, currency: 'gems' | 'coins' | 'usd' = 'gems', gemsAmount?: number) => {
+    // For real money purchases, open payment modal
+    if (currency === 'usd') {
+      setPendingItem({ name, cost, currency, gemsAmount });
+      setPaymentModalVisible(true);
+    } else {
+      // For in-game currency, show confirmation modal
+      setPendingItem({ name, cost, currency });
+      setConfirmVisible(true);
+    }
   };
 
   // Handler for Cancel in modal
@@ -103,6 +118,95 @@ export default function ShopScreen() {
     }
     setConfirmVisible(false);
     setPendingItem(null);
+  };
+
+  // Handler for Stripe payment
+  const handleStripePayment = async () => {
+    if (!cardComplete) {
+      Alert.alert('Card Required', 'Please enter valid card details');
+      return;
+    }
+
+    if (!pendingItem || pendingItem.currency !== 'usd') {
+      return;
+    }
+
+    setPaymentLoading(true);
+
+    try {
+      // Convert USD to cents for Stripe (e.g., $0.99 -> 99 cents)
+      const amountInCents = Math.round(pendingItem.cost * 100);
+
+      // Step 1: Create PaymentIntent on backend
+      console.log('Creating PaymentIntent for', pendingItem.name);
+      const response = await fetch(`${API_BASE}/api/stripe/create-payment-intent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: amountInCents,
+          currency: 'usd',
+          metadata: {
+            userId: 'user_' + Date.now(),
+            productId: pendingItem.name,
+            gemsAmount: pendingItem.gemsAmount?.toString() || '0',
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create payment intent');
+      }
+
+      const { clientSecret } = await response.json();
+      console.log('PaymentIntent created, confirming payment...');
+
+      // Step 2: Confirm payment with Stripe
+      const { error, paymentIntent } = await confirmPayment(clientSecret, {
+        paymentMethodType: 'Card',
+      });
+
+      if (error) {
+        console.error('Payment confirmation failed:', error);
+        Alert.alert(
+          'Payment Failed',
+          error.message || 'An error occurred during payment'
+        );
+      } else if (paymentIntent) {
+        console.log('Payment succeeded:', paymentIntent.id);
+        
+        // Update gems balance after successful payment
+        const gemsToAdd = pendingItem.gemsAmount || 0;
+        setUserData((prev: any) => ({
+          ...prev,
+          gems: (prev.gems || 0) + gemsToAdd,
+        }));
+
+        // Close payment modal
+        setPaymentModalVisible(false);
+        setPendingItem(null);
+        setCardComplete(false);
+
+        // Show success message
+        Alert.alert(
+          'Payment Successful! 🎉',
+          `You received ${gemsToAdd} gems!\nYour payment of $${pendingItem.cost.toFixed(2)} was processed successfully.`
+        );
+      }
+    } catch (err: any) {
+      console.error('Payment error:', err);
+      Alert.alert('Error', err.message || 'Something went wrong');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleCancelPayment = () => {
+    setPaymentModalVisible(false);
+    setPendingItem(null);
+    setCardComplete(false);
   };
 
   // Calendar dynamic cost and limit
@@ -380,12 +484,12 @@ export default function ShopScreen() {
             <View style={styles.buyButtonContainer}>
               <TouchableOpacity
                 style={styles.buyButton}
-                onPress={() => handleBuyPress('20 Gems', 0.99)}
+                onPress={() => handleBuyPress('20 Gems', 0.99, 'usd', 20)}
               >
                 <View style={styles.buyButtonContentColumn}>
                   <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Buy</Text>
                   <View style={styles.buyButtonPriceRow}>
-                    <Text style={styles.priceTextInButton}>0.99$</Text>
+                    <Text style={styles.priceTextInButton}>$0.99</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -412,12 +516,12 @@ export default function ShopScreen() {
             <View style={styles.buyButtonContainer}>
               <TouchableOpacity
                 style={styles.buyButton}
-                onPress={() => handleBuyPress('100 gems', 1.99)}
+                onPress={() => handleBuyPress('100 Gems', 1.99, 'usd', 100)}
               >
                 <View style={styles.buyButtonContentColumn}>
                   <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Buy</Text>
                   <View style={styles.buyButtonPriceRow}>
-                    <Text style={styles.priceTextInButton}>1.99$</Text>
+                    <Text style={styles.priceTextInButton}>$1.99</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -437,7 +541,7 @@ export default function ShopScreen() {
                 Confirm Purchase
               </Text>
               {pendingItem && (
-                pendingItem.name === 'Shovel' || pendingItem.name === '20 Gems' || pendingItem.name === '100 gems' ? (
+                pendingItem.name === 'Shovel' ? (
                   <Text style={{ fontSize: 16, color: '#7c4d00', marginBottom: 8, textAlign: 'center' }}>
                     Coming Soon!
                   </Text>
@@ -456,6 +560,123 @@ export default function ShopScreen() {
               </View>
             </View>
           </View>
+        </Modal>
+
+        {/* Stripe Payment Modal */}
+        <Modal
+          visible={paymentModalVisible}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={handleCancelPayment}
+        >
+          <ScrollView style={{ flex: 1, backgroundColor: '#f5f5f5' }} contentContainerStyle={{ padding: 20 }}>
+            <View style={{ alignItems: 'center', marginTop: 20 }}>
+              <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 10, color: '#333' }}>
+                Complete Payment
+              </Text>
+              
+              {pendingItem && (
+                <View style={{ alignItems: 'center', marginBottom: 30, backgroundColor: '#fff', padding: 20, borderRadius: 16, width: '100%' }}>
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#7c4d00', marginBottom: 10 }}>
+                    {pendingItem.name}
+                  </Text>
+                  <Text style={{ fontSize: 16, color: '#666', marginBottom: 10 }}>
+                    {pendingItem.gemsAmount} Gems
+                  </Text>
+                  <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#4bbf7f' }}>
+                    ${pendingItem.cost.toFixed(2)}
+                  </Text>
+                </View>
+              )}
+
+                            <View style={{ width: '100%', marginBottom: 20 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 10, color: '#333' }}>
+                  Card Details:
+                </Text>
+                <View style={{
+                  backgroundColor: '#fff',
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: '#e0e0e0',
+                  padding: 5,
+                  marginVertical: 10,
+                }}>
+                  <CardField
+                    postalCodeEnabled={true}
+                    autofocus={true}
+                    placeholders={{
+                      number: '4242 4242 4242 4242',
+                      postalCode: '12345',
+                    }}
+                    cardStyle={{
+                      backgroundColor: '#FFFFFF',
+                      textColor: '#000000',
+                      placeholderColor: '#999999',
+                      fontSize: 16,
+                    }}
+                    style={{
+                      height: 50,
+                      width: '100%',
+                    }}
+                    onCardChange={(cardDetails) => {
+                      console.log('Card details:', cardDetails);
+                      setCardComplete(cardDetails.complete);
+                    }}
+                  />
+                </View>
+                  <Text style={{ fontSize: 12, color: '#666', marginTop: 5 }}>
+                    💳 Test card: 4242 4242 4242 4242
+                    📅 Expiry: 12/34 (any future date)
+                    🔒 CVC: 123 (any 3 digits)
+                    📍 ZIP: 12345 (any 5 digits)
+                  </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  {
+                    backgroundColor: '#4bbf7f',
+                    padding: 18,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    width: '100%',
+                    marginVertical: 20,
+                  },
+                  (!cardComplete || paymentLoading) && { backgroundColor: '#ccc' },
+                ]}
+                onPress={handleStripePayment}
+                disabled={!cardComplete || paymentLoading}
+              >
+                {paymentLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={{ color: '#fff', fontSize: 18, fontWeight: '600' }}>
+                    Pay ${pendingItem?.cost.toFixed(2)}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  padding: 12,
+                  alignItems: 'center',
+                  width: '100%',
+                }}
+                onPress={handleCancelPayment}
+                disabled={paymentLoading}
+              >
+                <Text style={{ color: '#666', fontSize: 16 }}>Cancel</Text>
+              </TouchableOpacity>
+
+              <View style={{ backgroundColor: '#e8f5e9', padding: 15, borderRadius: 10, marginTop: 20, width: '100%' }}>
+                <Text style={{ fontSize: 14, color: '#2e7d32', lineHeight: 22 }}>
+                  💳 Your payment is secured by Stripe{'\n'}
+                  🔒 SSL encrypted connection{'\n'}
+                  ✅ PCI compliant
+                </Text>
+              </View>
+            </View>
+          </ScrollView>
         </Modal>
       </ScrollView>
       {/* You can add more shop content below */}
