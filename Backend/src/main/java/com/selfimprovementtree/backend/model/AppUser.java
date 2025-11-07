@@ -21,6 +21,16 @@ public class AppUser {
     @Column(nullable = false)
     private String passwordHash;
 
+    // Tutorial progress flags
+    @Column(name = "tutorial_tree", nullable = false)
+    private boolean tutorialTree = false;
+
+    @Column(name = "tutorial_habit", nullable = false)
+    private boolean tutorialHabit = false;
+
+    @Column(name = "tutorial_shop", nullable = false)
+    private boolean tutorialShop = false;
+
     public AppUser() {}
 
     public AppUser(String email, String username, String passwordHash) {
@@ -55,5 +65,29 @@ public class AppUser {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public boolean isTutorialTree() {
+        return tutorialTree;
+    }
+
+    public void setTutorialTree(boolean tutorialTree) {
+        this.tutorialTree = tutorialTree;
+    }
+
+    public boolean isTutorialHabit() {
+        return tutorialHabit;
+    }
+
+    public void setTutorialHabit(boolean tutorialHabit) {
+        this.tutorialHabit = tutorialHabit;
+    }
+
+    public boolean isTutorialShop() {
+        return tutorialShop;
+    }
+
+    public void setTutorialShop(boolean tutorialShop) {
+        this.tutorialShop = tutorialShop;
     }
 }

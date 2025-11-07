@@ -337,12 +337,12 @@ export default function ShopScreen() {
               <Text style={styles.itemDescription}>Cure tree and set decay back to 0</Text>
             </View>
             <View style={styles.buyButtonContainer}>
-              <TouchableOpacity style={styles.buyButton} onPress={() => handleBuyPress('Fertilizer', 5)}>
+              <TouchableOpacity style={styles.buyButton} onPress={() => handleBuyPress('Fertilizer', 3)}>
                 <View style={styles.buyButtonContentColumn}>
                   <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Buy</Text>
                   <View style={styles.buyButtonPriceRow}>
                     <Image source={require('../assets/gem.png')} style={styles.priceIconInButton} />
-                    <Text style={styles.priceTextInButton}>5</Text>
+                    <Text style={styles.priceTextInButton}>3</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -356,12 +356,12 @@ export default function ShopScreen() {
               <Text style={styles.itemDescription}>Dig your tree up to plant a new one</Text>
             </View>
             <View style={styles.buyButtonContainer}>
-              <TouchableOpacity style={styles.buyButton} onPress={() => handleBuyPress('Shovel', 5)}>
+              <TouchableOpacity style={styles.buyButton} onPress={() => handleBuyPress('Shovel', 1)}>
                 <View style={styles.buyButtonContentColumn}>
                   <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Buy</Text>
                   <View style={styles.buyButtonPriceRow}>
                     <Image source={require('../assets/gem.png')} style={styles.priceIconInButton} />
-                    <Text style={styles.priceTextInButton}>5</Text>
+                    <Text style={styles.priceTextInButton}>1</Text>
                   </View>
                 </View>
               </TouchableOpacity>

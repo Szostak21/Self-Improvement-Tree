@@ -2,7 +2,8 @@
 const gemRewardsByStage = [0, 1, 2, 3, 4, 5, 6];
 import React, { useState } from 'react';
 import { useUserData } from '../UserDataContext';
-import { View, Text, Image, ImageBackground, StyleSheet, ScrollView, TouchableOpacity, Animated, useWindowDimensions } from 'react-native';
+import { View, Text, Image, ImageBackground, StyleSheet, ScrollView, TouchableOpacity, Animated, useWindowDimensions, Modal } from 'react-native';
+import { useTutorialProgress } from '../hooks/useTutorialProgress';
 
 // Preload all tree graphics
 const treeImages = {
@@ -23,6 +24,111 @@ export default function TreeScreen() {
   const gems = userData.gems;
   const exp = userData.exp;
   const decay = userData.decay;
+  
+  // Tutorial state
+  const { hasSeenTutorial, markTutorialAsDone, isLoading } = useTutorialProgress();
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [currentTutorialStep, setCurrentTutorialStep] = useState(0);
+  const [showTutorialOverlay, setShowTutorialOverlay] = useState(false);
+  const tutorialOpacity = React.useRef(new Animated.Value(0)).current;
+
+  // Check if tutorial should start when component mounts
+  React.useEffect(() => {
+    if (!isLoading && !hasSeenTutorial('tree')) {
+      // Show welcome modal after a short delay
+      setTimeout(() => setShowWelcomeModal(true), 800);
+    }
+  }, [hasSeenTutorial, isLoading]);
+
+  // Reset tutorial opacity when overlay is hidden
+  React.useEffect(() => {
+    if (!showTutorialOverlay) {
+      tutorialOpacity.setValue(0);
+    }
+  }, [showTutorialOverlay, tutorialOpacity]);
+
+  // Tutorial handlers
+  const handleStartTutorial = () => {
+    setShowWelcomeModal(false);
+    setCurrentTutorialStep(1);
+    setShowTutorialOverlay(true);
+    // Fade in animation
+    Animated.timing(tutorialOpacity, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+    console.log('📖 Starting tree tutorial - Step 1: Tree explanation');
+  };
+
+  const handleSkipTutorial = async () => {
+    // Fade out animation
+    Animated.timing(tutorialOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowWelcomeModal(false);
+      setShowTutorialOverlay(false);
+    });
+    await markTutorialAsDone('tree');
+    console.log('⏭️ Tree tutorial skipped');
+  };
+
+  const handleNextTutorialStep = () => {
+    if (currentTutorialStep === 1) {
+      // Fade out current step
+      Animated.timing(tutorialOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(() => {
+        // Change to step 2
+        setCurrentTutorialStep(2);
+        // Fade in new step
+        Animated.timing(tutorialOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      });
+      console.log('📖 Tree tutorial - Step 2: EXP and decay bars explanation');
+    } else if (currentTutorialStep === 2) {
+      // Fade out current step
+      Animated.timing(tutorialOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(() => {
+        // Change to step 3
+        setCurrentTutorialStep(3);
+        // Fade in new step
+        Animated.timing(tutorialOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      });
+      console.log('📖 Tree tutorial - Step 3: Bottom navigation explanation');
+    } else if (currentTutorialStep === 3) {
+      // Fade out and complete tutorial
+      Animated.timing(tutorialOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowTutorialOverlay(false);
+        setCurrentTutorialStep(0);
+      });
+      markTutorialAsDone('tree');
+      console.log('✅ Tree tutorial completed');
+    }
+  };
+
+  const handleTutorialOverlayClose = () => {
+    setShowTutorialOverlay(false);
+    setCurrentTutorialStep(0);
+  };
   // Tree stages and exp requirements
   const expStages = [40, 100, 160, 200, 300, 400, 0];
   // Restore treeStage and expToLevel from userData if present, else default
@@ -216,6 +322,196 @@ export default function TreeScreen() {
 
   return (
     <View style={{flex: 1}}>
+      {/* Welcome Modal - Only shown on first visit */}
+      <Modal
+        visible={showWelcomeModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleSkipTutorial}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>🌱 Welcome!</Text>
+            <Text style={styles.modalText}>
+              Welcome to Self Improvement Tree! {'\n\n'}
+              Here your personal growth takes the form of a living tree.
+              {'\n\n'}
+              Would you like a quick tour?
+            </Text>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.skipButton]}
+                onPress={handleSkipTutorial}
+              >
+                <Text style={styles.skipButtonText}>Skip</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalButton, styles.startButton]}
+                onPress={handleStartTutorial}
+              >
+                <Text style={styles.startButtonText}>Start Tour</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Tutorial Overlay - Step 1: Tree Explanation */}
+      {showTutorialOverlay && currentTutorialStep === 1 && (
+        <Animated.View style={[styles.tutorialOverlay, { opacity: tutorialOpacity }]}>
+          {/* Semi-transparent overlay pieces that avoid the highlight area */}
+          {/* Top piece */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: 0,
+            left: 0,
+            right: 0,
+            height: bgHeight * 0.55,
+          }]} />
+          
+          {/* Bottom piece */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: bgHeight * 0.7,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }]} />
+          
+          {/* Left piece */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: bgHeight * 0.55,
+            left: 0,
+            right: '47.5%',
+            marginRight: bgHeight * 0.1,
+            height: bgHeight * 0.15,
+          }]} />
+          
+          {/* Right piece */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: bgHeight * 0.55,
+            left: '47.5%',
+            marginLeft: bgHeight * 0.1,
+            right: 0,
+            height: bgHeight * 0.15,
+          }]} />
+          
+          {/* Tutorial tooltip */}
+          <View style={[styles.tutorialTooltip, { top: '60%' }]}>
+            <Text style={styles.tutorialTitle}>🌳 Your Tree</Text>
+            <Text style={styles.tutorialText}>
+              This is your personal growth tree!{'\n\n'}
+              • It grows when you complete good habits{'\n'}
+              • It decays when you neglect bad habits{'\n\n'}
+              Keep it healthy to reach higher levels!
+            </Text>
+            
+            <View style={styles.tutorialButtons}>
+              <TouchableOpacity
+                style={[styles.tutorialButton, styles.tutorialNextButton]}
+                onPress={handleNextTutorialStep}
+              >
+                <Text style={styles.tutorialNextButtonText}>Next</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* Tutorial Overlay - Step 2: EXP and Decay Bars Explanation */}
+      {showTutorialOverlay && currentTutorialStep === 2 && (
+        <Animated.View style={[styles.tutorialOverlay, { opacity: tutorialOpacity }]}>
+          {/* Semi-transparent overlay pieces that avoid the progress bars area */}
+          {/* Top piece - above progress bars */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '77.5%', // Above the progress bars area
+          }]} />
+          
+          {/* Bottom piece - below progress bars */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: '84%', // Below progress bars area
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }]} />
+          
+          {/* Left piece */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: '77.5%',
+            left: 0,
+            right: '97%', // Leave space for progress bars
+            height: '6.5%', // Height of progress bars area
+          }]} />
+          
+          {/* Right piece */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: '77.5%',
+            left: '97%',
+            right: 0,
+            height: '6.5%',
+          }]} />
+          
+          {/* Tutorial tooltip */}
+          <View style={[styles.tutorialTooltip, { top: '30%' }]}>
+            <Text style={styles.tutorialTitle}>📊 Progress Bars</Text>
+            <Text style={styles.tutorialText}>
+              • <Text style={{color: '#4bbf7f', fontWeight: 'bold'}}>EXP Bar (Green)</Text>: Represents tree growth{'\n'}
+                When filled, your tree advances to the next stage!{'\n\n'}
+              • <Text style={{color: '#ff0000', fontWeight: 'bold'}}>Decay Bar (Red)</Text>: Represents rot and decay{'\n'}
+                When filled, growth stops. Use fertilizer cure your tree and set this bar back to 0!
+            </Text>
+            
+            <View style={styles.tutorialButtons}>
+              <TouchableOpacity
+                style={[styles.tutorialButton, styles.tutorialNextButton]}
+                onPress={handleNextTutorialStep}
+              >
+                <Text style={styles.tutorialNextButtonText}>Next</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* Tutorial Overlay - Step 3: Bottom Navigation Explanation */}
+      {showTutorialOverlay && currentTutorialStep === 3 && (
+        <Animated.View style={[styles.tutorialOverlay, { opacity: tutorialOpacity }]}>
+          {/* Semi-transparent overlay pieces that avoid the bottom navigation area */}
+          {/* Top piece - covers everything above navigation */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: '0%', // Leave bottom 15% for navigation
+          }]} />
+          
+          {/* Tutorial tooltip */}
+          <View style={[styles.tutorialTooltip, { bottom: '10%' }]}>
+            <Text style={styles.tutorialTitle}>🧭 Navigation</Text>
+            <Text style={styles.tutorialText}>
+              Use the bottom navigation bar to explore different sections of the app!{'\n\n'}
+              • <Text style={{fontWeight: 'bold'}}>Tree Screen</Text>: Your tree and daily habits{'\n'}
+              • <Text style={{fontWeight: 'bold'}}>Habits Screen</Text>: Upgrade and add habits{'\n'}
+              • <Text style={{fontWeight: 'bold'}}>Shop Screen</Text>: Buy upgrades and items{'\n'}
+              • <Text style={{fontWeight: 'bold'}}>Account Screen</Text>: Inventory, login and stats{'\n\n'}
+              Try visiting another screen now to continue learning!
+            </Text>
+            
+            <View style={styles.tutorialButtons}>
+              <TouchableOpacity
+                style={[styles.tutorialButton, styles.tutorialNextButton]}
+                onPress={handleNextTutorialStep}
+              >
+                <Text style={styles.tutorialNextButtonText}>Got it!</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Animated.View>
+      )}
+
       {/* Popup for stage up */}
       {showStagePopup && (
         <View style={{
@@ -551,5 +847,159 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontStyle: 'italic',
     marginTop: 8,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 30,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#2d5016',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 16,
+    color: '#333',
+    lineHeight: 24,
+    textAlign: 'center',
+    marginBottom: 25,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 15,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skipButton: {
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  skipButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  startButton: {
+    backgroundColor: '#4a7c2c',
+  },
+  startButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  // Tutorial overlay styles
+  tutorialOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+  },
+  tutorialBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    zIndex: 1000,
+  },
+  tutorialBackdropPiece: {
+    position: 'absolute',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    zIndex: 1000,
+  },
+  tutorialTreeSpotlight: {
+    position: 'absolute',
+    zIndex: 1001, // Above backdrop
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tutorialHighlight: {
+    position: 'absolute',
+    borderWidth: 4,
+    borderColor: '#4bbf7f',
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+    shadowColor: '#4bbf7f',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 15,
+    elevation: 10,
+    zIndex: 1002, // Above tree spotlight
+  },
+  tutorialTooltip: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1003, // Highest z-index
+  },
+  tutorialTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2d5016',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  tutorialText: {
+    fontSize: 16,
+    color: '#333',
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  tutorialButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  tutorialButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 120,
+  },
+  tutorialNextButton: {
+    backgroundColor: '#4a7c2c',
+  },
+  tutorialNextButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

@@ -29,7 +29,15 @@ export default function SettingsScreen() {
   const clearLocalData = async () => {
     try {
       const keys = await AsyncStorage.getAllKeys();
-      const importantKeys = ['userData', 'authToken', 'accountId', 'username', 'sut_user_id', 'sut_guest_user_id'];
+      const importantKeys = [
+        'userData', 
+        'authToken', 
+        'accountId', 
+        'username', 
+        'sut_user_id', 
+        'sut_guest_user_id',
+        '@tutorialProgress'  // Tutorial progress data - will reset tutorials on next app launch
+      ];
       const toRemove = keys.filter(k => k.startsWith('userData:') || importantKeys.includes(k));
       if (toRemove.length) {
         await AsyncStorage.multiRemove(toRemove);

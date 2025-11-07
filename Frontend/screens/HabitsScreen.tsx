@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useUserData } from '../UserDataContext';
-import { View, Text, TouchableOpacity, Modal, TextInput, Button, StyleSheet, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, TextInput, Button, StyleSheet, Image, Alert, Animated } from 'react-native';
+import { useTutorialProgress } from '../hooks/useTutorialProgress';
 
 // simple UUID v4 generator for stable habit ids
 const genId = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -58,6 +59,84 @@ export default function HabitsScreen() {
   const [editHabitText, setEditHabitText] = useState('');
   const [editExpLevel, setEditExpLevel] = useState(1);
   const [editGoldLevel, setEditGoldLevel] = useState(1);
+
+  // Tutorial state
+  const { hasSeenTutorial, markTutorialAsDone, isLoading } = useTutorialProgress();
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [currentTutorialStep, setCurrentTutorialStep] = useState(0);
+  const [showTutorialOverlay, setShowTutorialOverlay] = useState(false);
+  const [isTutorialActive, setIsTutorialActive] = useState(false);
+  const tutorialOpacity = React.useRef(new Animated.Value(0)).current;
+
+  // Check if tutorial should start when component mounts
+  React.useEffect(() => {
+    if (!isLoading && !hasSeenTutorial('habit')) {
+      // Show welcome modal after a short delay
+      setTimeout(() => setShowWelcomeModal(true), 800);
+    }
+  }, [hasSeenTutorial, isLoading]);
+
+  // Reset tutorial opacity when overlay is hidden
+  React.useEffect(() => {
+    if (!showTutorialOverlay) {
+      tutorialOpacity.setValue(0);
+    }
+  }, [showTutorialOverlay, tutorialOpacity]);
+
+  // Tutorial handlers
+  const handleStartTutorial = () => {
+    setShowWelcomeModal(false);
+    setCurrentTutorialStep(1);
+    setShowTutorialOverlay(true);
+    setIsTutorialActive(true);
+    // Fade in animation
+    Animated.timing(tutorialOpacity, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+    console.log('📖 Starting habits tutorial - Step 1: Add good habit explanation');
+  };
+
+  const handleSkipTutorial = async () => {
+    // Fade out animation
+    Animated.timing(tutorialOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowWelcomeModal(false);
+      setShowTutorialOverlay(false);
+    });
+    await markTutorialAsDone('habit');
+    console.log('⏭️ Habits tutorial skipped');
+  };
+
+  const handleNextTutorialStep = () => {
+    if (currentTutorialStep === 1) {
+      // Move to step 2: Upgrade tutorial
+      setCurrentTutorialStep(2);
+      console.log('📖 Habits tutorial - Step 2: Upgrade explanation');
+    } else if (currentTutorialStep === 2) {
+      // Fade out and complete tutorial
+      Animated.timing(tutorialOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowTutorialOverlay(false);
+        setCurrentTutorialStep(0);
+        setIsTutorialActive(false);
+      });
+      markTutorialAsDone('habit');
+      console.log('✅ Habits tutorial completed');
+    }
+  };
+
+  const handleTutorialOverlayClose = () => {
+    setShowTutorialOverlay(false);
+    setCurrentTutorialStep(0);
+  };
 
   // Upgrade handlers for good and bad habits
   // New upgrade costs for bad habits: 0:10, 1:20, 2:50, 3:100, 4:200 (for upgrades from 0→1, 1→2, ..., 4→5)
@@ -162,6 +241,19 @@ export default function HabitsScreen() {
       ]);
       setNewHabit('');
       setModalVisible(false);
+      // If tutorial is active and in step 1, advance to step 2 and show overlay
+      if (isTutorialActive && currentTutorialStep === 1) {
+        setCurrentTutorialStep(2);
+        // Fade in step 2 overlay after a short delay
+        setTimeout(() => {
+          Animated.timing(tutorialOpacity, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }).start();
+        }, 300); // Wait for modal to fully close
+        console.log('📖 Habits tutorial - Step 2: Upgrade explanation');
+      }
     } else if (name.length > 25) {
       Alert.alert('Too long', 'Habit name must be 25 characters or fewer.');
     }
@@ -195,6 +287,14 @@ export default function HabitsScreen() {
     if (goodHabits.length >= maxGoodHabits) {
       setLimitModalVisible(true);
     } else {
+      // Fade out tutorial overlay when modal opens
+      if (isTutorialActive && currentTutorialStep === 1) {
+        Animated.timing(tutorialOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }
       setModalVisible(true);
     }
   };
@@ -243,6 +343,175 @@ export default function HabitsScreen() {
 
   return (
     <View style={styles.habitsScreenSplit}>
+      {/* Welcome Tutorial Modal */}
+      <Modal
+        visible={showWelcomeModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleSkipTutorial}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.tutorialModal}>
+            <Text style={styles.tutorialTitle}>Welcome to Habits!</Text>
+            <Text style={styles.tutorialText}>
+              Here you can create and manage your habits to help grow your tree.{'\n\n'}
+              Let's take a quick tour to learn how it works!
+            </Text>
+            <View style={styles.tutorialButtons}>
+              <TouchableOpacity
+                style={[styles.tutorialButton, styles.skipButton]}
+                onPress={handleSkipTutorial}
+              >
+                <Text style={styles.skipButtonText}>Skip Tutorial</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tutorialButton, styles.startButton]}
+                onPress={handleStartTutorial}
+              >
+                <Text style={styles.startButtonText}>Start Tutorial</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Tutorial Overlay - Step 1: Add Good Habit Explanation */}
+      {showTutorialOverlay && currentTutorialStep === 1 && (
+        <Animated.View style={[styles.tutorialOverlay, { opacity: tutorialOpacity }]}>
+          {/* Semi-transparent overlay pieces that highlight bottom right corner */}
+          {/* Top piece - covers top 80% */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '85%',
+          }]} />
+          
+          {/* Left piece - covers left 80% of bottom */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: '85%',
+            left: 0,
+            right: '80%',
+            bottom: 0,
+          }]} />
+          
+          {/* Right piece - leaves small gap for green + button */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: '90%',
+            left: '25%',
+            right: 0,
+            bottom: '25%',
+          }]} />
+          
+          {/* Bottom piece - leaves gap for green + button */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: '85%',
+            left: '20%',
+            right: '30%',
+            bottom: 0,
+          }]} />
+          
+          {/* Tutorial tooltip - centered on screen */}
+          <View style={[styles.tutorialModal, { top: '40%', left: '5%', right: '5%' }]}>
+            <Text style={styles.tutorialTitle}>➕ Add Your First Good Habit</Text>
+            <Text style={styles.tutorialText}>
+              Tap the <Text style={{color: '#176d3b', fontWeight: 'bold'}}>green "+" button</Text> to create positive habits that will help grow your tree!{'\n\n'}
+              Good habits give you experience points and coins when completed daily.
+            </Text>
+          </View>
+          
+          {/* Transparent button exactly over the green + button */}
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              right: 30,
+              bottom: 30,
+              width: 60,
+              height: 60,
+              backgroundColor: 'transparent',
+              zIndex: 1004,
+            }}
+            onPress={handleAddButtonPress}
+          />
+        </Animated.View>
+      )}
+
+      {/* Tutorial Overlay - Step 2: Upgrade Explanation */}
+      {showTutorialOverlay && currentTutorialStep === 2 && (
+        <Animated.View style={[styles.tutorialOverlay, { opacity: tutorialOpacity }]}>
+          {/* Semi-transparent overlay pieces that highlight good habits area */}
+          {/* Top piece - covers top 20% */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '6%',
+          }]} />
+          
+          {/* Left piece - covers left 60% */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: '6%',
+            left: 0,
+            right: '50%',
+            bottom: '0%',
+          }]} />
+          
+          {/* Bottom piece - covers bottom 40% */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: '25%',
+            left: '50%',
+            right: 0,
+            bottom: 0,
+          }]} />
+          
+          {/* Right piece - covers right 40% of middle */}
+          <View style={[styles.tutorialBackdropPiece, {
+            top: '20%',
+            left: '100%',
+            right: 0,
+            bottom: '40%',
+          }]} />
+          
+          {/* Tutorial tooltip - positioned at bottom center */}
+          <View style={[styles.tutorialModal, { bottom: '10%', left: '5%', right: '5%' }]}>
+            <Text style={styles.tutorialTitle}>⬆️ Upgrade Your Habits</Text>
+            <Text style={styles.tutorialText}>
+              Tap on your habit to edit it and access <Text style={{color: '#176d3b', fontWeight: 'bold'}}>upgrade options</Text>!{'\n\n'}
+              Upgrading increases EXP and gold rewards but costs coins. Higher levels = better rewards!
+            </Text>
+          </View>
+          
+          {/* Transparent button exactly over the first habit box */}
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: '6%', // Start where first habit box appears (marginTop: 90)
+              left: '55%', // Start of centered 80% container in right half
+              width: '40%', // Width of container (80% of 50% half)
+              height: '19%', // Height for one habit box with some padding
+              backgroundColor: 'transparent',
+              zIndex: 1004,
+            }}
+            onPress={() => {
+              // Open edit modal for the first habit (index 0)
+              if (goodHabits.length > 0) {
+                setEditHabitIdx(0);
+                setEditHabitText(goodHabits[0].name);
+                setEditExpLevel(goodHabits[0].expLevel);
+                setEditGoldLevel(goodHabits[0].goldLevel);
+                setEditModalVisible(true);
+                // Fade out tutorial overlay when modal opens
+                Animated.timing(tutorialOpacity, {
+                  toValue: 0,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start();
+              }
+            }}
+          />
+        </Animated.View>
+      )}
+
       {/* Top left: Bad Habits label box, dark brown */}
       <View style={[styles.habitLabelBox, { left: '8%', width: '34%', alignItems: 'center', backgroundColor: '#4b2e19' }]}> 
         <Text style={styles.habitLabelText}>Bad Habits</Text>
@@ -324,7 +593,16 @@ export default function HabitsScreen() {
                 maxLength={25}
               />
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-                <Button title="Cancel" onPress={() => setBadModalVisible(false)} color="#888" />
+                <Button 
+                  title="Cancel" 
+                  onPress={() => {
+                    // Don't allow canceling during tutorial
+                    if (!isTutorialActive) {
+                      setBadModalVisible(false);
+                    }
+                  }} 
+                  color="#888" 
+                />
                 <View style={{ width: 12 }} />
                 <Button title="Add" onPress={handleAddBadHabit} color="#4b2e19" />
               </View>
@@ -531,7 +809,15 @@ export default function HabitsScreen() {
                 maxLength={25}
               />
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-                <Button title="Cancel" onPress={() => setModalVisible(false)} color="#888" />
+                <Button 
+                  title="Cancel" 
+                  onPress={() => {
+                    // Don't allow canceling during tutorial
+                    if (isTutorialActive) return;
+                    setModalVisible(false);
+                  }} 
+                  color="#888" 
+                />
                 <View style={{ width: 12 }} />
                 <Button title="Add" onPress={handleAddHabit} color="#176d3b" />
               </View>
@@ -543,7 +829,13 @@ export default function HabitsScreen() {
           visible={editModalVisible}
           animationType="slide"
           transparent={true}
-          onRequestClose={() => setEditModalVisible(false)}
+          onRequestClose={() => {
+            setEditModalVisible(false);
+            // Complete tutorial when modal is closed via back button/swipe
+            if (isTutorialActive && currentTutorialStep === 2) {
+              handleNextTutorialStep();
+            }
+          }}
         >
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
             <View style={{ backgroundColor: '#fff', padding: 24, borderRadius: 16, width: '80%' }}>
@@ -625,7 +917,15 @@ export default function HabitsScreen() {
               </View>
               {/* Delete and Exit buttons */}
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
-                <Button title="Delete" onPress={handleDeleteHabit} color="#d32f2f" />
+                <Button 
+                  title="Delete" 
+                  onPress={() => {
+                    // Don't allow deleting during tutorial
+                    if (isTutorialActive) return;
+                    handleDeleteHabit();
+                  }} 
+                  color="#d32f2f" 
+                />
                 <View style={{ width: 12 }} />
                 <Button
                   title="Exit"
@@ -650,6 +950,10 @@ export default function HabitsScreen() {
                       setGoodHabits(updated);
                     }
                     setEditModalVisible(false);
+                    // Complete tutorial when exiting edit modal
+                    if (isTutorialActive && currentTutorialStep === 2) {
+                      handleNextTutorialStep();
+                    }
                   }}
                   color="#176d3b"
                 />
@@ -931,5 +1235,107 @@ const styles = StyleSheet.create({
   },
   expLossBarLevelEmpty: {
     backgroundColor: '#fff',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  tutorialOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+  },
+  tutorialModal: {
+    position: 'absolute',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 30,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1003,
+  },
+  tutorialTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#2d5016',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  tutorialText: {
+    fontSize: 16,
+    color: '#333',
+    lineHeight: 24,
+    textAlign: 'center',
+    marginBottom: 25,
+  },
+  tutorialButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 15,
+  },
+  tutorialButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skipButton: {
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  skipButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  startButton: {
+    backgroundColor: '#4a7c2c',
+  },
+  startButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  // Tutorial overlay styles
+  tutorialBackdropPiece: {
+    position: 'absolute',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    zIndex: 1000,
+  },
+  tutorialTooltip: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1003, // Highest z-index
+  },
+  tutorialNextButton: {
+    backgroundColor: '#4a7c2c',
+  },
+  tutorialNextButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
