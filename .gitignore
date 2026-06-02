@@ -31,13 +31,7 @@ yarn-error.*
 *.pem
 
 # local env files
-.env
 .env*.local
-.env.development
-.env.production
-
-# But track the example
-!.env.example
 
 # typescript
 *.tsbuildinfo
@@ -63,9 +57,3 @@ logs/
 # OS/Editor
 Thumbs.db
 .vscode/
-
-# Environment variables (use .env.example as template)
-.env
-.env*.local
-Backend/.env
-Frontend/.env
