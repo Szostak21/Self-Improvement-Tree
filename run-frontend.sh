@@ -1,13 +1,14 @@
 #!/bin/bash
 
-# Load environment variables from .env file if it exists
-if [ -f "../.env" ]; then
-    export $(grep -v '^#' ../.env | xargs)
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [ -f "$ROOT_DIR/.env" ]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "$ROOT_DIR/.env"
+    set +a
 fi
 
-# Export Expo public environment variables
-export EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY="${EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY}"
-
-cd "$(dirname "$0")/Frontend"
+cd "$ROOT_DIR/Frontend"
 
 npx expo start --lan
