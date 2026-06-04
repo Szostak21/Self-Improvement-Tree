@@ -1,6 +1,7 @@
 // Centralized API base URL for backend requests.
-// Update this to your backend host/IP. For LAN, use your machine's IP; for tunnel/public, use the public URL.
-export const API_BASE = 'http://172.20.10.2:8080';
+// Ustaw EXPO_PUBLIC_API_BASE w root .env (domyślnie http://HOSTNAME:8080).
+export const API_BASE =
+  process.env.EXPO_PUBLIC_API_BASE ?? 'http://localhost:8080';
 
 // Stripe Configuration
 // Get your publishable key from https://dashboard.stripe.com/test/apikeys

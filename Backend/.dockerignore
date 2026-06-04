@@ -1,0 +1,15 @@
+# Ignorujemy foldery z budowy Mavena/Gradle (tam siedzą ciężkie pliki .class i .jar)
+target/
+build/
+.gradle/
+
+# Ignorujemy pliki konfiguracyjne środowisk IDE (IntelliJ, Eclipse)
+.idea/
+*.iml
+.settings/
+.classpath
+.project
+
+# Logi systemowe i pliki tymczasowe
+*.log
+tmp/

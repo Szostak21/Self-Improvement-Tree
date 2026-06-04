@@ -1,0 +1,13 @@
+# Ignorujemy całe podfoldery, bo one mają swoje własne procesy budowania
+.git
+.gitignore
+README.md
+.env
+.env.example
+
+# Ignorujemy bazy danych i wolumeny, jeśli zapisałyby się lokalnie
+postgres-data/
+*.db
+
+# Śmieci systemowe
+.DS_Store

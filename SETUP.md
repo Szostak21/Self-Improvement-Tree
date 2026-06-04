@@ -1,151 +1,67 @@
-# Self-Improvement Tree - Setup Guide 🚀
+# Self-Improvement Tree — Setup
 
-Quick guide to get the app running from scratch.
+## Wymagania
 
----
-
-## Prerequisites
-
-- **Node.js** (LTS version)
-- **Java 17+** (JDK)
-- **Git**
-- **Gmail account** (for email verification features)
-- **Stripe account** (for payment features - optional for testing)
+- **Docker** i **Docker Compose**
+- Konto **Gmail** (e-mail weryfikacyjny)
+- Konto **Stripe** (opcjonalnie, płatności testowe)
 
 ---
 
-## Quick Start (3 steps)
-
-### Option A: Automated Setup (Recommended)
+## Uruchomienie
 
 ```bash
 git clone https://github.com/Szostak21/Self-Improvement-Tree.git
 cd Self-Improvement-Tree
-./setup.sh
-```
 
-The script will check prerequisites, create `.env`, and install dependencies.
-
-### Option B: Manual Setup
-
-### 1. Clone & Install
-
-```bash
-git clone https://github.com/Szostak21/Self-Improvement-Tree.git
-cd Self-Improvement-Tree
-```
-
-### 2. Configure Environment
-
-Create the environment file from the template:
-
-```bash
 cp .env.example .env
-# Edit .env with your actual credentials
+# Edytuj .env — Gmail, Stripe, HOSTNAME, hasło bazy
+
+docker compose up --build
 ```
 
-**Required Credentials (single root `.env`):**
-- Gmail app password
-- Stripe secret key, publishable key (`EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`), webhook secret
+### Zmienne w `.env`
 
-**Note:** For Gmail App Password, enable 2FA on your Google account, then generate an app password at: https://myaccount.google.com/apppasswords
+| Zmienna | Opis |
+|---------|------|
+| `HOSTNAME` | IP komputera w LAN (`192.168.x.x`) dla Expo Go na telefonie; `localhost` tylko do testów web w przeglądarce |
+| `EXPO_PUBLIC_API_BASE` | Opcjonalnie; domyślnie `http://HOSTNAME:8080` |
+| `EXPO_START_WEB` | Ustaw `1`, aby uruchomić też wersję web (`http://HOSTNAME:19006`) |
 
-**Security Note:** Environment files are gitignored to prevent accidental commits of sensitive data.
+### Expo Go (telefon, ta sama sieć Wi‑Fi)
 
-### 3. Start the App
+1. W logach kontenera `sit-frontend` znajdź adres `exp://…:8081`
+2. W Expo Go: **Enter URL manually** → wpisz ten adres (bez QR)
 
-**Terminal 1 - Backend:**
-```bash
-./run-backend.sh
-```
+### Porty
 
-**Terminal 2 - Frontend:**
-```bash
-./run-frontend.sh
-```
-
-The backend will start on `http://localhost:8080` and the frontend will open in Expo.
+| Usługa | Port |
+|--------|------|
+| Backend API | 8080 |
+| Expo Metro | 8081 |
+| Expo Web | 19006 |
+| PostgreSQL | 5432 |
 
 ---
 
-## Testing on Mobile Device
+## Stripe webhooks (opcjonalnie)
 
-1. Make sure your phone and computer are on the same Wi-Fi network
-2. The `run-backend.sh` script automatically detects your local IP and updates the frontend config
-3. Open Expo Go app on your phone and scan the QR code
-
----
-
-## Testing Payments (Optional)
-
-To test Stripe payments with webhook support:
-
-**Terminal 3 - Stripe Webhooks:**
 ```bash
-cd Backend
 stripe listen --forward-to http://localhost:8080/api/stripe/webhook
 ```
 
-Use test card: **4242 4242 4242 4242** (any future date, any CVC)
-
-More test cards: https://stripe.com/docs/testing
+Karta testowa: `4242 4242 4242 4242`
 
 ---
 
-## Features You Can Test
+## Rozwiązywanie problemów
 
-- ✅ **Guest Mode**: Use the app without registration
-- ✅ **Account Creation**: Register with email verification
-- ✅ **Habit Tracking**: Add habits and check them off daily
-- ✅ **Tree Growth**: Watch your tree grow as you build habits
-- ✅ **Shop System**: Claim daily rewards (coins/gems)
-- ✅ **Real Payments**: Buy gems with Stripe (test mode)
-- ✅ **Progress Sync**: Login to sync data across devices
+**Expo Go nie łączy się** — `HOSTNAME` w `.env` musi być IP komputera w Wi‑Fi, nie `localhost`.
+
+**Backend nie startuje** — sprawdź `DB_*` w `.env` i logi `sit-backend`.
+
+**Aplikacja nie widzi API** — ustaw `EXPO_PUBLIC_API_BASE=http://<HOSTNAME>:8080` w `.env` i zrestartuj: `docker compose up --build`.
 
 ---
 
-## Troubleshooting
-
-**Backend won't start?**
-- Check Java version: `java -version` (needs 17+)
-- Verify `.env` file exists with your credentials
-
-**Frontend can't connect?**
-- Check `Frontend/config.ts` - API_BASE should match your local IP
-- Ensure backend is running on port 8080
-
-**Payments not working?**
-- Make sure Stripe keys are in `.env` file
-- Start the stripe webhook listener (see above)
-- Use test card: 4242 4242 4242 4242
-
----
-
-## File Structure
-
-```
-Self-Improvement-Tree/
-├── Backend/              # Spring Boot API
-│   └── src/main/java/    # Java source code
-├── Frontend/             # React Native (Expo) app
-│   ├── app.config.js     # Loads root .env for Expo
-│   ├── screens/          # App screens
-│   └── config.ts         # API configuration
-├── .env.example          # Environment template (copy to .env)
-├── .env                  # All secrets (backend + frontend; create this)
-├── run-backend.sh        # Start backend script
-└── run-frontend.sh       # Start frontend script
-```
-
----
-
-## Next Steps
-
-- Customize the tree graphics in `Frontend/assets/tree/`
-- Add more shop items in `ShopScreen.tsx`
-- Deploy to production (update Stripe keys to live mode)
-- Customize email templates in backend
-
----
-
-Need help? Check the [main README](README.md) for architecture overview.
+Szczegóły architektury: [README.md](README.md)

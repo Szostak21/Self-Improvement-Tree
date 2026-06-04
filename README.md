@@ -57,7 +57,7 @@ A gamified habit-tracking app that grows a beautiful tree as you build daily rou
 - Spring Boot 3.5
 - Spring Security + JWT
 - JPA/Hibernate
-- H2 Database (dev) / PostgreSQL (production)
+- PostgreSQL
 - JavaMailSender (SMTP)
 - Stripe Java SDK
 
@@ -66,23 +66,16 @@ A gamified habit-tracking app that grows a beautiful tree as you build daily rou
 ## Quick Start ▶️
 
 ```bash
-# 1. Clone repository
 git clone https://github.com/Szostak21/Self-Improvement-Tree.git
 cd Self-Improvement-Tree
 
-# 2. Run automated setup
-./setup.sh
+cp .env.example .env
+# Edit .env — Gmail, Stripe, HOSTNAME (LAN IP or localhost)
 
-# 3. Configure .env with your credentials (Gmail, Stripe)
-
-# 4. Start backend
-./run-backend.sh
-
-# 5. Start frontend (new terminal)
-./run-frontend.sh
+docker compose up --build
 ```
 
-**Full setup guide:** [SETUP.md](SETUP.md)
+**Setup guide:** [SETUP.md](SETUP.md)
 
 ---
 

@@ -9,8 +9,5 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=builder /app/target/*.jar app.jar
 
-#tymczasowo
-RUN mkdir data
-
 EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]

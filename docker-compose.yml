@@ -1,29 +1,30 @@
 services:
-  # 1. Nasza baza danych
   postgres-db:
     image: postgres:15-alpine
     container_name: sit-postgres
     environment:
-      POSTGRES_DB: ${DB_NAME:-selfimprovement}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-haslo}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - sit_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-selfimprovement}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   backend:
-    image: sit-backend:1.1
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
     container_name: sit-backend
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/${DB_NAME:-selfimprovement}
-      SPRING_DATASOURCE_USERNAME: ${DB_USER:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:haslo}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_MAIL_USERNAME: ${GMAIL_USER}
       SPRING_MAIL_PASSWORD: ${GMAIL_APP_PASSWORD}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY} 
@@ -33,6 +34,26 @@ services:
     depends_on:
       postgres-db:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: sit-frontend
+    env_file:
+      - .env
+    ports:
+      - "8081:8081"
+      - "19006:19006"
+    environment:
+      NODE_ENV: development
+      EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
+      CI: "true"
+    depends_on:
+      - backend
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules
 
 volumes:
   sit_pg_data:
