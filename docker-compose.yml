@@ -21,13 +21,17 @@ services:
       context: ./Backend
       dockerfile: Dockerfile
     container_name: sit-backend
+    env_file:
+      - .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/${DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      SPRING_MAIL_USERNAME: ${GMAIL_USER}
-      SPRING_MAIL_PASSWORD: ${GMAIL_APP_PASSWORD}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY} 
+      GMAIL_USER: ${GMAIL_USER}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD}
+      APP_JWT_SECRET: ${APP_JWT_SECRET}
+      APP_ADMIN_TOKEN: ${APP_ADMIN_TOKEN}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
     ports:
       - "8080:8080"

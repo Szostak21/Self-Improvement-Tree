@@ -17,8 +17,8 @@ public class JwtService {
     private final long ttlSeconds;
 
     public JwtService(
-            @Value("${app.jwt.secret:change-me-super-secret-change-me-change-me}") String secret,
-            @Value("${app.jwt.ttlSeconds:2592000}") long ttlSeconds
+            @Value("${app.jwt.secret}") String secret,
+            @Value("${app.jwt.ttl-seconds}") long ttlSeconds
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
         this.ttlSeconds = ttlSeconds;

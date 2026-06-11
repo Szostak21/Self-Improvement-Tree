@@ -18,7 +18,7 @@ public class AdminController {
     private final UserDataRepository dataRepo;
     private final PendingRegistrationRepository pendingRepo;
 
-    @Value("${app.admin.token:dev-reset-token}")
+    @Value("${app.admin.token}")
     private String adminToken;
 
     public AdminController(AppUserRepository userRepo, UserDataRepository dataRepo, PendingRegistrationRepository pendingRepo) {

@@ -1,0 +1,10 @@
+# Caddy na hoście EC2 (Ubuntu), poza Dockerem.
+# Instalacja: https://caddyserver.com/docs/install#debian-ubuntu-raspbian
+# Umieść ten plik np. w /etc/caddy/Caddyfile i: sudo systemctl reload caddy
+#
+# DNS: rekord A  api.sit.pszostak.pl  →  publiczne IP instancji EC2
+# Porty EC2 (Security Group): 22, 80, 443 — NIE otwieraj 8080 ani 5432 publicznie
+
+api.sit.pszostak.pl {
+	reverse_proxy 127.0.0.1:8080
+}

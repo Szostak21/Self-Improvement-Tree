@@ -16,12 +16,22 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.selfimprovementtree.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true
     },
+    "plugins": [
+      [
+        "@stripe/stripe-react-native",
+        {
+          "enableGooglePay": true
+        }
+      ]
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     }
